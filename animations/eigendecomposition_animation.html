@@ -301,19 +301,33 @@ function computeEigen(M){
   const tr=M[0][0]+M[1][1];
   const det=M[0][0]*M[1][1]-M[0][1]*M[1][0];
   const disc=tr*tr-4*det;
-  if(disc<0) return null;
-  const sqD=Math.sqrt(disc);
+
+  if(disc < -1e-9) return { type:'complex', l1:null, l2:null, v1:null, v2:null };
+
+  const sqD=Math.sqrt(Math.max(disc,0));
   const l1=(tr+sqD)/2, l2=(tr-sqD)/2;
+
   function eigvec(lam){
     let vx,vy;
     if(Math.abs(M[0][1])>1e-9){ vx=M[0][1]; vy=lam-M[0][0]; }
     else if(Math.abs(M[1][0])>1e-9){ vx=lam-M[1][1]; vy=M[1][0]; }
-    else { vx=(Math.abs(lam-M[0][0])<Math.abs(lam-M[1][1]))?0:1; vy=1-vx; }
+    else { vx=1; vy=0; }
     const ln=Math.sqrt(vx*vx+vy*vy);
-    if(ln<1e-9) return [1,0];
+    if(ln<1e-9) return null;
     return [vx/ln, vy/ln];
   }
-  return { l1, l2, v1:eigvec(l1), v2:eigvec(l2) };
+
+  const v1=eigvec(l1);
+  const v2=eigvec(l2);
+
+  const repeated = Math.abs(disc) < 1e-9;
+  if(repeated){
+    const parallel = !v1 || !v2 ||
+      Math.abs(v1[0]*v2[1] - v1[1]*v2[0]) < 1e-6;
+    if(parallel) return { type:'defective', l1, l2:l1, v1: v1||[1,0], v2:null };
+  }
+
+  return { type:'diagonalisable', l1, l2, v1, v2 };
 }
 
 function matMul(M,v){ return [M[0][0]*v[0]+M[0][1]*v[1], M[1][0]*v[0]+M[1][1]*v[1]]; }
@@ -407,8 +421,12 @@ function resetAll(){
 /* Next button: if step not started → play it; if done → advance to next step and play */
 document.getElementById('btn-next').addEventListener('click',()=>{
   if(animating) return;
+  const eig=computeEigen(getMatrix());
+  // Block advancing past step 0 if not diagonalisable
+  if(eig.type !== 'diagonalisable' && (stepDone || currentStep > 0)){
+    return; // stay on step 0, annotation explains why
+  }
   if(!stepDone){
-    // play current step
     startStepAnimation();
   } else if(currentStep < NUM_PHASES-1){
     currentStep++;
@@ -569,6 +587,49 @@ function draw(){
 
   /* update annotation */
   updateAnnotation(phase, loc, eig);
+
+  /* ── non-diagonalisable fallback ── */
+  if(eig.type !== 'diagonalisable'){
+    drawGridStandard(1, C.gridMinor, C.gridMajor);
+    ctx.strokeStyle=C.axis; ctx.lineWidth=1; ctx.setLineDash([]);
+    let [ax0,ay0]=toScreen([-GR,0]), [ax1,ay1]=toScreen([GR,0]);
+    ctx.beginPath(); ctx.moveTo(ax0,ay0); ctx.lineTo(ax1,ay1); ctx.stroke();
+    [ax0,ay0]=toScreen([0,-GR]); [ax1,ay1]=toScreen([0,GR]);
+    ctx.beginPath(); ctx.moveTo(ax0,ay0); ctx.lineTo(ax1,ay1); ctx.stroke();
+
+    if(eig.type==='defective' && eig.v1){
+      // Draw the single eigenvector and its span
+      const spanA=ease(clamp(loc/0.4,0,1));
+      drawEigSpan(eig.v1, C.span1, spanA*0.8);
+      const vecA=ease(clamp((loc-0.3)/0.5,0,1));
+      drawArrow([0,0], eig.v1, C.lam1, 2.5, vecA);
+      labelAt(eig.v1, 'v₁ (λ='+eig.l1.toFixed(2)+', only 1)', C.lam1, vecA);
+
+      // Draw a generalised eigenvector hint fading in later
+      if(loc>0.6){
+        const ga=ease(clamp((loc-0.6)/0.35,0,1));
+        // generalised eigenvector: solve (M-lI)w = v1
+        const M=A, lam=eig.l1, v=eig.v1;
+        // (M-lI)w = v => find w by substitution
+        // Use least-squares: pick w s.t. it's not parallel to v1
+        let wx=0,wy=0;
+        const a=M[0][0]-lam, b=M[0][1], c=M[1][0], d=M[1][1]-lam;
+        // Try w = [0,t]: b*t=v[0] -> t=v[0]/b if b!=0
+        if(Math.abs(b)>1e-9){ wx=0; wy=v[0]/b; }
+        else if(Math.abs(a)>1e-9){ wx=v[0]/a; wy=0; }
+        else { wx=v[1]/c||1; wy=0; }
+        const wl=Math.sqrt(wx*wx+wy*wy);
+        if(wl>1e-9){ wx/=wl; wy/=wl; }
+        drawArrow([0,0],[wx,wy], C.lam2, 2.5, ga, [4,3]);
+        labelAt([wx,wy],'w (generalised)', C.lam2, ga);
+      }
+    }
+
+    const [osx2,osy2]=toScreen([0,0]);
+    dot(osx2,osy2,C.origin,3.5,1);
+    ctx.restore();
+    return;
+  }
 
   /* ──────────────────────────────────────
      PHASE 0: Show eigenvector spans + vectors materialise
@@ -798,6 +859,16 @@ const ANNOTATIONS = [
 ];
 
 function updateAnnotation(phase,loc,eig){
+  if(eig.type==='complex'){
+    document.getElementById('annotation').innerHTML =
+      '<strong>Complex eigenvalues:</strong> The discriminant tr²−4det < 0, so the eigenvalues are a conjugate complex pair. This matrix represents a <em>rotation-scaling</em> — no real vector stays on its own line. P·D·P⁻¹ is not possible over ℝ.';
+    return;
+  }
+  if(eig.type==='defective'){
+    document.getElementById('annotation').innerHTML =
+      '<strong>Defective matrix — not diagonalisable:</strong> λ = <span class="lam1">'+eig.l1.toFixed(2)+'</span> is a repeated eigenvalue (algebraic multiplicity 2) but there is only <em>one</em> independent eigenvector (geometric multiplicity 1). P cannot be formed with 2 independent columns, so P·D·P⁻¹ does not exist. The Jordan form J = [[λ,1],[0,λ]] is the best you can do. The dashed arrow shows the <span class="lam2">generalised eigenvector</span> w, where (X−λI)w = v₁.';
+    return;
+  }
   document.getElementById('annotation').innerHTML = ANNOTATIONS[phase](loc,eig);
 }
 
@@ -816,15 +887,20 @@ function updateStats(){
   const v1El=document.getElementById('st-v1');
   const v2El=document.getElementById('st-v2');
 
-  if(!eig){
+  if(eig.type==='complex'){
     l1El.textContent='cmplx'; l1El.className='stat-value complex';
     l2El.textContent='cmplx'; l2El.className='stat-value complex';
     v1El.textContent='—'; v2El.textContent='—';
+  } else if(eig.type==='defective'){
+    l1El.textContent=eig.l1.toFixed(2); l1El.className='stat-value lam1';
+    l2El.textContent=eig.l2.toFixed(2)+' (×2)'; l2El.className='stat-value lam2';
+    v1El.textContent=eig.v1?'['+eig.v1[0].toFixed(2)+', '+eig.v1[1].toFixed(2)+']':'—';
+    v2El.textContent='— (defective)';
   } else {
     l1El.textContent=eig.l1.toFixed(2); l1El.className='stat-value lam1';
     l2El.textContent=eig.l2.toFixed(2); l2El.className='stat-value lam2';
-    v1El.textContent='['+eig.v1[0].toFixed(2)+', '+eig.v1[1].toFixed(2)+']';
-    v2El.textContent='['+eig.v2[0].toFixed(2)+', '+eig.v2[1].toFixed(2)+']';
+    v1El.textContent=eig.v1?'['+eig.v1[0].toFixed(2)+', '+eig.v1[1].toFixed(2)+']':'—';
+    v2El.textContent=eig.v2?'['+eig.v2[0].toFixed(2)+', '+eig.v2[1].toFixed(2)+']':'—';
   }
 }
 
