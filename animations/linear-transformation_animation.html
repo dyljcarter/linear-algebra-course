@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linear Transformation Visualiser</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0f1117;
+    --bg2:       #171b26;
+    --bg3:       #1e2333;
+    --border:    rgba(255,255,255,0.08);
+    --border2:   rgba(255,255,255,0.14);
+    --text:      #e2e4ec;
+    --text2:     #8b90a0;
+    --text3:     #555a6a;
+    --accent-b:  #4A90D9;
+    --accent-g:  #48BB78;
+    --accent-o:  #F6AD55;
+    --accent-r:  #FC8181;
+    --pos:       #48BB78;
+    --neg:       #FC8181;
+    --mono:      'JetBrains Mono', monospace;
+    --radius:    10px;
+    --radius-sm: 6px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg:        #f4f5f8;
+      --bg2:       #ffffff;
+      --bg3:       #eceef3;
+      --border:    rgba(0,0,0,0.08);
+      --border2:   rgba(0,0,0,0.14);
+      --text:      #1a1d2e;
+      --text2:     #5a5f72;
+      --text3:     #a0a5b5;
+      --accent-b:  #2563EB;
+      --accent-g:  #16A34A;
+      --accent-o:  #D97706;
+      --accent-r:  #DC2626;
+      --pos:       #16A34A;
+      --neg:       #DC2626;
+    }
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 20px;
+    gap: 14px;
+    min-height: 100vh;
+  }
+
+  h1 {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text2);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .top-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .matrix-panel {
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    flex-shrink: 0;
+  }
+
+  .panel-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text2);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .matrix-inner { display: flex; align-items: center; gap: 6px; }
+
+  .bracket {
+    font-size: 36px;
+    font-weight: 300;
+    color: var(--text3);
+    line-height: 1;
+    user-select: none;
+  }
+
+  .matrix-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .matrix-grid input {
+    width: 64px;
+    background: var(--bg3);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 7px 8px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    text-align: center;
+    outline: none;
+    transition: border-color .15s;
+    -moz-appearance: textfield;
+  }
+  .matrix-grid input::-webkit-outer-spin-button,
+  .matrix-grid input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .matrix-grid input:focus { border-color: var(--accent-b); }
+
+  .stats { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+
+  .stat {
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    min-width: 88px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text2);
+    letter-spacing: .04em;
+    margin-bottom: 5px;
+  }
+
+  .stat-value {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+    transition: color .3s;
+  }
+  .stat-value.pos  { color: var(--pos); }
+  .stat-value.neg  { color: var(--neg); }
+  .stat-value.zero { color: var(--text3); }
+
+  .canvas-wrap { position: relative; width: 100%; }
+
+  canvas {
+    width: 100%;
+    display: block;
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border);
+    background: var(--bg2);
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+  }
+
+  .ctrl-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text2);
+    letter-spacing: .06em;
+    min-width: 10px;
+    user-select: none;
+  }
+
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--bg3);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    border: 0.5px solid var(--border);
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    transition: transform .1s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--text);
+    border: none;
+    cursor: pointer;
+  }
+
+  .t-val {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    min-width: 44px;
+    text-align: right;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  button {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    background: var(--bg2);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 7px 14px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: background .12s, color .12s;
+    white-space: nowrap;
+  }
+  button:hover { background: var(--bg3); color: var(--text); }
+  button.active-play { background: var(--bg3); color: var(--text); border-color: rgba(255,255,255,0.25); }
+
+  .sep { flex: 1; }
+  .preset-label { font-size: 10px; color: var(--text3); letter-spacing: .06em; text-transform: uppercase; user-select: none; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 0 2px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text2); }
+  .legend-dot { width: 22px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<h1>Linear Transformation Visualiser</h1>
+
+<div class="top-row">
+  <div class="matrix-panel">
+    <div class="panel-label">Matrix A</div>
+    <div class="matrix-inner">
+      <div class="bracket">[</div>
+      <div class="matrix-grid">
+        <input id="a00" type="number" value="2" step="0.5">
+        <input id="a01" type="number" value="1" step="0.5">
+        <input id="a10" type="number" value="1" step="0.5">
+        <input id="a11" type="number" value="2" step="0.5">
+      </div>
+      <div class="bracket">]</div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">det(I)</div>
+      <div class="stat-value pos" id="st-det-orig">1.00</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">det(A)</div>
+      <div class="stat-value pos" id="st-det">3.00</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">trace(A)</div>
+      <div class="stat-value" id="st-tr">4.00</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">λ₁, λ₂</div>
+      <div class="stat-value" id="st-eig">1, 3</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">|Ae₁|</div>
+      <div class="stat-value" id="st-ax">2.24</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">|Ae₂|</div>
+      <div class="stat-value" id="st-ay">2.24</div>
+    </div>
+  </div>
+</div>
+
+<div class="canvas-wrap">
+  <canvas id="c" height="480"></canvas>
+</div>
+
+<div class="controls">
+  <span class="ctrl-label">t</span>
+  <input type="range" id="tslider" min="0" max="1" step="0.001" value="0">
+  <span class="t-val" id="tval">0.000</span>
+</div>
+
+<div class="btn-row">
+  <button id="btn-play" class="active-play">▶ Play</button>
+  <button id="btn-reset">↺ Reset</button>
+  <div class="sep"></div>
+  <span class="preset-label">Presets:</span>
+  <button onclick="setMatrix(2,1,1,2)">Symmetric</button>
+  <button onclick="setMatrix(0,-1,1,0)">Rotate 90°</button>
+  <button onclick="setMatrix(2,0,0,0.5)">Scale</button>
+  <button onclick="setMatrix(1,1,0,1)">Shear</button>
+  <button onclick="setMatrix(-1,0,0,1)">Reflect X</button>
+  <button onclick="setMatrix(0.5,0.5,0.5,0.5)">Singular</button>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#4A90D9"></div>e₁ (original)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#48BB78"></div>e₂ (original)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#F6AD55"></div>Ae₁ (transformed)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#FC8181"></div>Ae₂ (transformed)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:rgba(255,220,100,0.5);border:0.5px dashed rgba(255,220,100,0.4)"></div>Eigenvectors</div>
+  <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.12);border:0.5px dashed rgba(255,255,255,0.2)"></div>Original grid (ghost)</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const DPR    = window.devicePixelRatio || 1;
+let raf = null, t = 0, playing = false;
+let A = [[2,1],[1,2]];
+
+function lerp(a,b,t){ return a+(b-a)*t; }
+function ease(t){ return t<0.5?2*t*t:-1+(4-2*t)*t; }
+
+function getMatrix(){
+  return [
+    [parseFloat(document.getElementById('a00').value)||0, parseFloat(document.getElementById('a01').value)||0],
+    [parseFloat(document.getElementById('a10').value)||0, parseFloat(document.getElementById('a11').value)||0]
+  ];
+}
+
+function setMatrix(a,b,c,d){
+  document.getElementById('a00').value=a;
+  document.getElementById('a01').value=b;
+  document.getElementById('a10').value=c;
+  document.getElementById('a11').value=d;
+  A=[[a,b],[c,d]];
+  stopPlay();
+  t=0; document.getElementById('tslider').value=0; document.getElementById('tval').textContent='0.000';
+  updateStats(); draw(0);
+}
+
+function lerpVec(v,A,t){
+  const e=ease(t);
+  return [
+    lerp(v[0], A[0][0]*v[0]+A[0][1]*v[1], e),
+    lerp(v[1], A[1][0]*v[0]+A[1][1]*v[1], e)
+  ];
+}
+
+function isDark(){ return window.matchMedia('(prefers-color-scheme: dark)').matches; }
+
+function getColors(){
+  const dk=isDark();
+  return {
+    gridMinor: dk?'rgba(255,255,255,0.045)':'rgba(0,0,0,0.045)',
+    gridMajor: dk?'rgba(255,255,255,0.09)' :'rgba(0,0,0,0.09)',
+    gridT:     dk?'rgba(74,144,217,0.16)'  :'rgba(37,99,235,0.13)',
+    gridTMaj:  dk?'rgba(74,144,217,0.32)'  :'rgba(37,99,235,0.26)',
+    axis:      dk?'rgba(255,255,255,0.22)' :'rgba(0,0,0,0.22)',
+    origin:    dk?'rgba(255,255,255,0.4)'  :'rgba(0,0,0,0.4)',
+    bx:        dk?'#4A90D9':'#2563EB',
+    by:        dk?'#48BB78':'#16A34A',
+    ax:        dk?'#F6AD55':'#D97706',
+    ay:        dk?'#FC8181':'#DC2626',
+    para:      dk?'rgba(74,144,217,0.10)'  :'rgba(37,99,235,0.08)',
+    tpara:     dk?'rgba(246,173,85,0.15)'  :'rgba(217,119,6,0.12)',
+    label:     dk?'rgba(255,255,255,0.6)'  :'rgba(0,0,0,0.6)',
+    eigLine:   dk?'rgba(255,220,100,0.5)'  :'rgba(160,120,0,0.5)',
+  };
+}
+
+function draw(t){
+  const W=canvas.width/DPR, H=canvas.height/DPR;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.save(); ctx.scale(DPR,DPR);
+
+  const ox=W/2, oy=H/2;
+  const scale=Math.min(W,H)*0.155;
+  const C=getColors();
+  const e=ease(t);
+  const GR=Math.ceil(Math.max(W,H)/scale)+2;
+
+  function toScreen(v){ return [ox+v[0]*scale, oy-v[1]*scale]; }
+
+  /* ── ghost original grid (fades out) ── */
+  const ghostA=1-e;
+  if(ghostA>0.01){
+    ctx.globalAlpha=ghostA;
+    for(let i=-GR;i<=GR;i++){
+      const maj=(i%5===0);
+      ctx.strokeStyle=maj?C.gridMajor:C.gridMinor;
+      ctx.lineWidth=maj?0.8:0.5;
+      const [x0,y0]=toScreen([i,-GR]); const [x1,y1]=toScreen([i,GR]);
+      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+      const [p0,q0]=toScreen([-GR,i]); const [p1,q1]=toScreen([GR,i]);
+      ctx.beginPath(); ctx.moveTo(p0,q0); ctx.lineTo(p1,q1); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  }
+
+  /* ── transformed grid (fades in) ── */
+  if(e>0.01){
+    ctx.globalAlpha=e;
+    const cbx=lerpVec([1,0],A,t);
+    const cby=lerpVec([0,1],A,t);
+    for(let i=-GR;i<=GR;i++){
+      const maj=(i%5===0);
+      ctx.strokeStyle=maj?C.gridTMaj:C.gridT;
+      ctx.lineWidth=maj?0.8:0.5;
+      // lines along cby direction, offset by i*cbx
+      let sv=[cbx[0]*i-cby[0]*GR, cbx[1]*i-cby[1]*GR];
+      let ev=[cbx[0]*i+cby[0]*GR, cbx[1]*i+cby[1]*GR];
+      let [x0,y0]=toScreen(sv); let [x1,y1]=toScreen(ev);
+      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+      // lines along cbx direction, offset by i*cby
+      sv=[cby[0]*i-cbx[0]*GR, cby[1]*i-cbx[1]*GR];
+      ev=[cby[0]*i+cbx[0]*GR, cby[1]*i+cbx[1]*GR];
+      [x0,y0]=toScreen(sv); [x1,y1]=toScreen(ev);
+      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  }
+
+  /* ── original axes (fade out) ── */
+  if(ghostA>0.01){
+    ctx.globalAlpha=ghostA;
+    ctx.strokeStyle=C.axis; ctx.lineWidth=1; ctx.setLineDash([]);
+    let [x0,y0]=toScreen([-GR,0]); let [x1,y1]=toScreen([GR,0]);
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+    [x0,y0]=toScreen([0,-GR]); [x1,y1]=toScreen([0,GR]);
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+    // tick labels
+    ctx.font='400 10px JetBrains Mono, monospace';
+    ctx.textAlign='center'; ctx.textBaseline='top'; ctx.fillStyle=C.gridMajor;
+    for(let i=-4;i<=4;i++){
+      if(i===0) continue;
+      const [sx]=toScreen([i,0]); const [,sy]=toScreen([0,0]);
+      ctx.fillText(i,sx,sy+4);
+    }
+    ctx.globalAlpha=1;
+  }
+
+  /* ── current basis vectors ── */
+  const cbx=lerpVec([1,0],A,t);
+  const cby=lerpVec([0,1],A,t);
+
+  /* parallelogram */
+  const o=toScreen([0,0]),p1=toScreen(cbx),p2=toScreen([cbx[0]+cby[0],cbx[1]+cby[1]]),p3=toScreen(cby);
+  ctx.beginPath();
+  ctx.moveTo(o[0],o[1]); ctx.lineTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.lineTo(p3[0],p3[1]);
+  ctx.closePath();
+  ctx.fillStyle=t<0.02?C.para:C.tpara; ctx.fill();
+
+  /* ── eigenvector lines (real eigenvalues, fade in after t=0.65) ── */
+  const det=A[0][0]*A[1][1]-A[0][1]*A[1][0];
+  const tr=A[0][0]+A[1][1];
+  const disc=tr*tr-4*det;
+  if(disc>=0 && t>0.65){
+    const fa=Math.min((t-0.65)/0.25,1.0)*0.8;
+    ctx.globalAlpha=fa;
+    ctx.strokeStyle=C.eigLine; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+    const sqD=Math.sqrt(disc);
+    [((tr+sqD)/2),((tr-sqD)/2)].forEach(lam=>{
+      let vx,vy;
+      if(Math.abs(A[0][1])>1e-9){ vx=A[0][1]; vy=lam-A[0][0]; }
+      else if(Math.abs(A[1][0])>1e-9){ vx=lam-A[1][1]; vy=A[1][0]; }
+      else { vx=1; vy=0; }
+      const ln=Math.sqrt(vx*vx+vy*vy); if(ln<1e-9) return;
+      vx/=ln; vy/=ln;
+      const [sx0,sy0]=toScreen([-vx*GR,-vy*GR]);
+      const [sx1,sy1]=toScreen([ vx*GR, vy*GR]);
+      ctx.beginPath(); ctx.moveTo(sx0,sy0); ctx.lineTo(sx1,sy1); ctx.stroke();
+    });
+    ctx.setLineDash([]); ctx.globalAlpha=1;
+  }
+
+  /* ── arrow helper ── */
+  function drawArrow(from,to,color,width,alpha){
+    const [x1,y1]=toScreen(from); const [x2,y2]=toScreen(to);
+    const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
+    if(len<2) return;
+    const ux=dx/len,uy=dy/len;
+    const hw=Math.max(width*3.5,7),hl=Math.max(width*5,12);
+    const tx=x2-ux*hl,ty=y2-uy*hl;
+    ctx.globalAlpha=alpha;
+    ctx.strokeStyle=color; ctx.lineWidth=width; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(tx,ty); ctx.stroke();
+    ctx.fillStyle=color;
+    ctx.beginPath(); ctx.moveTo(x2,y2);
+    ctx.lineTo(tx-uy*hw,ty+ux*hw); ctx.lineTo(tx+uy*hw,ty-ux*hw);
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha=1;
+  }
+
+  if(t>0.05){
+    const ga=Math.min(t*0.4,0.25);
+    drawArrow([0,0],[1,0],C.bx,1.5,ga);
+    drawArrow([0,0],[0,1],C.by,1.5,ga);
+  }
+  drawArrow([0,0],cbx, t<0.05?C.bx:C.ax, lerp(2.2,2.8,e), 1.0);
+  drawArrow([0,0],cby, t<0.05?C.by:C.ay, lerp(2.2,2.8,e), 1.0);
+
+  /* ── vector labels ── */
+  ctx.globalAlpha=1;
+  ctx.font='500 12px JetBrains Mono, monospace';
+  ctx.textBaseline='middle';
+  const PAD=14;
+  function labelVec(vec,text,color){
+    const [vx,vy]=toScreen(vec);
+    ctx.fillStyle=color;
+    ctx.textAlign=vec[0]>=0?'left':'right';
+    ctx.fillText(text, vx+(vec[0]>=0?PAD:-PAD), vy+(vec[1]<=0?PAD:-PAD));
+  }
+  labelVec(cbx, t<0.05?'e\u2081':t>0.95?'Ae\u2081':'e\u2081\u2192Ae\u2081', t<0.3?C.bx:C.ax);
+  labelVec(cby, t<0.05?'e\u2082':t>0.95?'Ae\u2082':'e\u2082\u2192Ae\u2082', t<0.3?C.by:C.ay);
+
+  /* det annotation */
+  if(t>0.45){
+    const fa=Math.min((t-0.45)/0.2,1.0);
+    const cx=(cbx[0]+cby[0])*0.42, cy=(cbx[1]+cby[1])*0.42;
+    const [sx,sy]=toScreen([cx,cy]);
+    ctx.globalAlpha=fa*0.8; ctx.fillStyle=C.label;
+    ctx.font='400 10px JetBrains Mono, monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('det(A) = '+det.toFixed(2),sx,sy);
+    ctx.globalAlpha=1;
+  }
+  if(t>0.05 && ghostA>0.05){
+    const fa=Math.min((t-0.05)/0.15,1.0)*ghostA*0.7;
+    if(fa>0.01){
+      const [sx,sy]=toScreen([0.42,0.42]);
+      ctx.globalAlpha=fa; ctx.fillStyle=C.label;
+      ctx.font='400 10px JetBrains Mono, monospace';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('det(I) = 1',sx,sy); ctx.globalAlpha=1;
+    }
+  }
+
+  /* origin dot */
+  const [osx,osy]=toScreen([0,0]);
+  ctx.beginPath(); ctx.arc(osx,osy,3.5,0,Math.PI*2);
+  ctx.fillStyle=C.origin; ctx.fill();
+  ctx.restore();
+}
+
+/* ── stats ── */
+function updateStats(){
+  A=getMatrix();
+  const det=A[0][0]*A[1][1]-A[0][1]*A[1][0];
+  const tr=A[0][0]+A[1][1];
+  const ax=Math.sqrt(A[0][0]*A[0][0]+A[1][0]*A[1][0]);
+  const ay=Math.sqrt(A[0][1]*A[0][1]+A[1][1]*A[1][1]);
+  const disc=tr*tr-4*det;
+
+  const detEl=document.getElementById('st-det');
+  detEl.textContent=det.toFixed(2);
+  detEl.className='stat-value'+(det>0.001?' pos':det<-0.001?' neg':' zero');
+
+  document.getElementById('st-tr').textContent=tr.toFixed(2);
+  document.getElementById('st-ax').textContent=ax.toFixed(2);
+  document.getElementById('st-ay').textContent=ay.toFixed(2);
+
+  const eigEl=document.getElementById('st-eig');
+  if(disc<0){
+    eigEl.textContent='complex'; eigEl.className='stat-value zero';
+  } else {
+    const sqD=Math.sqrt(disc);
+    eigEl.textContent=((tr+sqD)/2).toFixed(2)+', '+((tr-sqD)/2).toFixed(2);
+    eigEl.className='stat-value';
+  }
+}
+
+/* ── playback ── */
+function stopPlay(){
+  playing=false;
+  if(raf){ cancelAnimationFrame(raf); raf=null; }
+  document.getElementById('btn-play').textContent='▶ Play';
+  document.getElementById('btn-play').classList.remove('active-play');
+}
+
+const slider=document.getElementById('tslider');
+const tvalEl=document.getElementById('tval');
+
+slider.addEventListener('input',()=>{
+  t=parseFloat(slider.value);
+  tvalEl.textContent=t.toFixed(3);
+  A=getMatrix(); draw(t);
+  if(playing) stopPlay();
+});
+
+['a00','a01','a10','a11'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>{ A=getMatrix(); updateStats(); draw(t); });
+});
+
+let last=null;
+function animFrame(ts){
+  if(!playing) return;
+  if(last===null) last=ts;
+  const dt=(ts-last)/1000; last=ts;
+  t=Math.min(t+dt*0.55,1);
+  slider.value=t; tvalEl.textContent=t.toFixed(3);
+  A=getMatrix(); updateStats(); draw(t);
+  if(t>=1){ stopPlay(); return; }
+  raf=requestAnimationFrame(animFrame);
+}
+
+document.getElementById('btn-play').addEventListener('click',()=>{
+  if(playing){ stopPlay(); return; }
+  if(t>=1){ t=0; slider.value=0; tvalEl.textContent='0.000'; }
+  playing=true; last=null;
+  document.getElementById('btn-play').textContent='⏸ Pause';
+  document.getElementById('btn-play').classList.add('active-play');
+  raf=requestAnimationFrame(animFrame);
+});
+
+document.getElementById('btn-reset').addEventListener('click',()=>{
+  stopPlay(); t=0; slider.value=0; tvalEl.textContent='0.000'; draw(0);
+});
+
+/* ── resize ── */
+function resize(){
+  const w=canvas.parentElement.clientWidth;
+  const h=Math.min(480,Math.round(w*0.6));
+  canvas.width=w*DPR; canvas.height=h*DPR;
+  canvas.style.height=h+'px';
+  draw(t);
+}
+window.addEventListener('resize',resize);
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>draw(t));
+resize(); updateStats(); draw(0);
+</script>
+</body>
+</html>
