@@ -6,168 +6,97 @@
 <title>Eigendecomposition Visualiser</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --bg:#0f1117;--bg2:#171b26;--bg3:#1e2333;
+    --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+    --text:#e2e4ec;--text2:#8b90a0;--text3:#555a6a;
+    --o:#F6AD55;--p:#C084FC;--b:#4A90D9;--g:#48BB78;--r:#FC8181;
+    --mono:'JetBrains Mono',monospace;--radius:10px;--rsm:6px;
+  }
+  @media(prefers-color-scheme:light){:root{
+    --bg:#f4f5f8;--bg2:#fff;--bg3:#eceef3;
+    --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+    --text:#1a1d2e;--text2:#5a5f72;--text3:#a0a5b5;
+    --o:#D97706;--p:#9333EA;--b:#2563EB;--g:#16A34A;--r:#DC2626;
+  }}
+  html,body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;}
+  body{display:flex;flex-direction:column;padding:18px;gap:12px;min-height:100vh;}
+  h1{font-size:14px;font-weight:500;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;}
 
-  :root {
-    --bg:        #0f1117;
-    --bg2:       #171b26;
-    --bg3:       #1e2333;
-    --border:    rgba(255,255,255,0.08);
-    --border2:   rgba(255,255,255,0.14);
-    --text:      #e2e4ec;
-    --text2:     #8b90a0;
-    --text3:     #555a6a;
-    --accent-b:  #4A90D9;
-    --accent-g:  #48BB78;
-    --accent-o:  #F6AD55;
-    --accent-r:  #FC8181;
-    --accent-p:  #C084FC;
-    --mono:      'JetBrains Mono', monospace;
-    --radius:    10px;
-    --radius-sm: 6px;
+  .top-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;}
+  .matrix-panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;flex-shrink:0;}
+  .panel-label{font-size:10px;font-weight:500;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+  .matrix-inner{display:flex;align-items:center;gap:6px;}
+  .bracket{font-size:36px;font-weight:300;color:var(--text3);line-height:1;user-select:none;}
+  .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .mgrid input{
+    width:64px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rsm);
+    padding:7px 8px;font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text);
+    text-align:center;outline:none;transition:border-color .15s;-moz-appearance:textfield;
   }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg:      #f4f5f8; --bg2: #ffffff; --bg3: #eceef3;
-      --border:  rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.14);
-      --text:    #1a1d2e; --text2: #5a5f72; --text3: #a0a5b5;
-      --accent-b:#2563EB; --accent-g:#16A34A; --accent-o:#D97706;
-      --accent-r:#DC2626; --accent-p:#9333EA;
-    }
-  }
-  html,body { background:var(--bg); color:var(--text); font-family:var(--mono); font-size:13px; }
-  body { display:flex; flex-direction:column; align-items:stretch; padding:18px; gap:12px; min-height:100vh; }
+  .mgrid input::-webkit-outer-spin-button,.mgrid input::-webkit-inner-spin-button{-webkit-appearance:none;}
+  .mgrid input:focus{border-color:var(--b);}
 
-  h1 { font-size:14px; font-weight:500; color:var(--text2); letter-spacing:.08em; text-transform:uppercase; }
+  .stats{display:flex;gap:8px;flex-wrap:wrap;flex:1;}
+  .stat{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 14px;min-width:78px;}
+  .stat-label{font-size:10px;font-weight:500;color:var(--text2);letter-spacing:.04em;margin-bottom:5px;}
+  .sv{font-size:16px;font-weight:500;color:var(--text);transition:color .3s;}
+  .sv.o{color:var(--o);}.sv.p{color:var(--p);}.sv.r{color:var(--r);font-size:12px;}
 
-  .top-row { display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap; }
+  .phase-strip{display:flex;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .pb{
+    flex:1;font-family:var(--mono);font-size:8px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;
+    padding:7px 2px;background:transparent;border:none;border-right:0.5px solid var(--border);
+    color:var(--text3);cursor:pointer;transition:background .15s,color .15s;text-align:center;line-height:1.5;
+  }
+  .pb:last-child{border-right:none;}
+  .pb.active{background:var(--bg3);color:var(--text);}
 
-  .matrix-panel {
-    background:var(--bg2); border:0.5px solid var(--border);
-    border-radius:var(--radius); padding:14px 16px; flex-shrink:0;
-  }
-  .panel-label { font-size:10px; font-weight:500; color:var(--text2); letter-spacing:.08em; text-transform:uppercase; margin-bottom:10px; }
-  .matrix-inner { display:flex; align-items:center; gap:6px; }
-  .bracket { font-size:36px; font-weight:300; color:var(--text3); line-height:1; user-select:none; }
-  .matrix-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
-  .matrix-grid input {
-    width:64px; background:var(--bg3); border:0.5px solid var(--border2);
-    border-radius:var(--radius-sm); padding:7px 8px; font-family:var(--mono);
-    font-size:14px; font-weight:500; color:var(--text); text-align:center;
-    outline:none; transition:border-color .15s; -moz-appearance:textfield;
-  }
-  .matrix-grid input::-webkit-outer-spin-button,
-  .matrix-grid input::-webkit-inner-spin-button { -webkit-appearance:none; }
-  .matrix-grid input:focus { border-color:var(--accent-b); }
+  canvas{width:100%;display:block;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--bg2);}
 
-  /* Stats */
-  .stats { display:flex; gap:8px; flex-wrap:wrap; flex:1; }
-  .stat {
-    background:var(--bg2); border:0.5px solid var(--border);
-    border-radius:var(--radius); padding:10px 14px; min-width:80px;
+  .annotation{
+    background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);
+    padding:11px 15px;font-size:11px;color:var(--text2);line-height:1.65;min-height:42px;
   }
-  .stat-label { font-size:10px; font-weight:500; color:var(--text2); letter-spacing:.04em; margin-bottom:5px; }
-  .stat-value { font-size:16px; font-weight:500; color:var(--text); transition:color .3s; }
-  .stat-value.lam1 { color:var(--accent-o); }
-  .stat-value.lam2 { color:var(--accent-p); }
-  .stat-value.zero { color:var(--text3); }
-  .stat-value.complex { color:var(--accent-r); font-size:12px; }
+  .annotation strong{color:var(--text);}
+  .annotation .o{color:var(--o);}.annotation .p{color:var(--p);}.annotation .b{color:var(--b);}
 
-  /* Phase indicator */
-  .phase-strip {
-    display:flex; gap:0; background:var(--bg2); border:0.5px solid var(--border);
-    border-radius:var(--radius); overflow:hidden;
-  }
-  .phase-btn {
-    flex:1; font-family:var(--mono); font-size:9px; font-weight:500;
-    letter-spacing:.05em; text-transform:uppercase; padding:9px 4px;
-    background:transparent; border:none; border-right:0.5px solid var(--border);
-    color:var(--text3); cursor:pointer; transition:background .15s,color .15s;
-    text-align:center; line-height:1.3;
-  }
-  .phase-btn:last-child { border-right:none; }
-  .phase-btn.active { background:var(--bg3); color:var(--text); }
+  .step-controls{display:flex;align-items:center;gap:12px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 16px;}
+  .step-info{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;}
+  #step-label{font-size:10px;font-weight:500;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;user-select:none;}
+  .dots{display:flex;gap:5px;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border2);transition:background .2s,transform .2s;}
+  .dot.active{background:var(--text2);transform:scale(1.3);}
+  .dot.done{background:var(--g);}
 
-  .canvas-wrap { position:relative; width:100%; }
-  canvas {
-    width:100%; display:block; border-radius:var(--radius);
-    border:0.5px solid var(--border); background:var(--bg2);
+  .sbtn{
+    font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;
+    background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--rsm);
+    padding:9px 18px;color:var(--text2);cursor:pointer;transition:background .12s,color .12s,opacity .12s;
+    white-space:nowrap;min-width:90px;text-align:center;
   }
+  .sbtn:hover:not(:disabled){background:var(--bg3);color:var(--text);}
+  .sbtn:disabled{opacity:0.28;cursor:default;}
+  .sbtn.primary{background:var(--bg3);color:var(--text);border-color:rgba(255,255,255,0.22);}
+  .sbtn.anim{color:var(--o);border-color:rgba(246,173,85,0.4);}
 
-  /* Annotation overlay */
-  .annotation {
-    background:var(--bg2); border:0.5px solid var(--border2);
-    border-radius:var(--radius); padding:10px 14px;
-    font-size:11px; color:var(--text2); line-height:1.6;
-    min-height:38px;
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .ctrl{
+    font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;
+    background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--rsm);
+    padding:7px 14px;color:var(--text2);cursor:pointer;transition:background .12s,color .12s;white-space:nowrap;
   }
-  .annotation strong { color:var(--text); }
-  .annotation .lam1 { color:var(--accent-o); }
-  .annotation .lam2 { color:var(--accent-p); }
-  .annotation .ev1  { color:var(--accent-o); }
-  .annotation .ev2  { color:var(--accent-p); }
+  .ctrl:hover{background:var(--bg3);color:var(--text);}
+  .sep{flex:1;}
+  .plbl{font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;user-select:none;}
 
-  /* Step controls */
-  .step-controls {
-    display:flex; align-items:center; gap:12px;
-    background:var(--bg2); border:0.5px solid var(--border);
-    border-radius:var(--radius); padding:12px 16px;
-  }
-  .step-info {
-    flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;
-  }
-  #step-label {
-    font-size:10px; font-weight:500; color:var(--text2);
-    letter-spacing:.06em; text-transform:uppercase; user-select:none;
-  }
-  .step-dots { display:flex; gap:6px; }
-  .step-dot {
-    width:8px; height:8px; border-radius:50%;
-    background:var(--bg3); border:0.5px solid var(--border2);
-    transition:background .2s, transform .2s;
-  }
-  .step-dot.active { background:var(--text2); transform:scale(1.2); }
-  .step-dot.done   { background:var(--accent-g); }
-
-  .step-btn {
-    font-family:var(--mono); font-size:11px; font-weight:500;
-    letter-spacing:.06em; text-transform:uppercase;
-    background:var(--bg2); border:0.5px solid var(--border2);
-    border-radius:var(--radius-sm); padding:9px 18px;
-    color:var(--text2); cursor:pointer;
-    transition:background .12s, color .12s, opacity .12s;
-    white-space:nowrap; min-width:90px; text-align:center;
-  }
-  .step-btn:hover:not(:disabled) { background:var(--bg3); color:var(--text); }
-  .step-btn:disabled { opacity:0.3; cursor:default; }
-  .step-btn.primary {
-    background:var(--bg3); color:var(--text);
-    border-color:rgba(255,255,255,0.22);
-  }
-  .step-btn.primary:hover:not(:disabled) { border-color:rgba(255,255,255,0.35); }
-  .step-btn.animating {
-    color:var(--accent-o); border-color:rgba(246,173,85,0.4);
-  }
-
-  .btn-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  button.ctrl {
-    font-family:var(--mono); font-size:10px; font-weight:500; letter-spacing:.06em;
-    text-transform:uppercase; background:var(--bg2); border:0.5px solid var(--border2);
-    border-radius:var(--radius-sm); padding:7px 14px; color:var(--text2);
-    cursor:pointer; transition:background .12s,color .12s; white-space:nowrap;
-  }
-  button.ctrl:hover { background:var(--bg3); color:var(--text); }
-
-  .sep { flex:1; }
-  .preset-label { font-size:10px; color:var(--text3); letter-spacing:.06em; text-transform:uppercase; user-select:none; }
-
-  .legend { display:flex; gap:14px; flex-wrap:wrap; padding:0 2px; }
-  .legend-item { display:flex; align-items:center; gap:6px; font-size:10px; color:var(--text2); }
-  .legend-dot { width:22px; height:3px; border-radius:2px; flex-shrink:0; }
+  .legend{display:flex;gap:14px;flex-wrap:wrap;padding:0 2px;}
+  .li{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2);}
+  .ld{width:22px;height:3px;border-radius:2px;flex-shrink:0;}
 </style>
 </head>
 <body>
-
 <h1>Eigendecomposition Visualiser</h1>
 
 <div class="top-row">
@@ -175,7 +104,7 @@
     <div class="panel-label">Matrix X</div>
     <div class="matrix-inner">
       <div class="bracket">[</div>
-      <div class="matrix-grid">
+      <div class="mgrid">
         <input id="a00" type="number" value="2" step="0.5">
         <input id="a01" type="number" value="1" step="0.5">
         <input id="a10" type="number" value="1" step="0.5">
@@ -184,737 +113,535 @@
       <div class="bracket">]</div>
     </div>
   </div>
-
   <div class="stats">
-    <div class="stat">
-      <div class="stat-label">λ₁</div>
-      <div class="stat-value lam1" id="st-lam1">3.00</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">λ₂</div>
-      <div class="stat-value lam2" id="st-lam2">1.00</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">tr(X)</div>
-      <div class="stat-value" id="st-tr">4.00</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">det(X)</div>
-      <div class="stat-value" id="st-det">3.00</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">v₁ (norm.)</div>
-      <div class="stat-value" style="font-size:11px" id="st-v1">[.71, .71]</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">v₂ (norm.)</div>
-      <div class="stat-value" style="font-size:11px" id="st-v2">[-.71, .71]</div>
-    </div>
+    <div class="stat"><div class="stat-label">λ₁</div><div class="sv o" id="st-l1">3.00</div></div>
+    <div class="stat"><div class="stat-label">λ₂</div><div class="sv p" id="st-l2">1.00</div></div>
+    <div class="stat"><div class="stat-label">tr(X)</div><div class="sv" id="st-tr">4.00</div></div>
+    <div class="stat"><div class="stat-label">det(X)</div><div class="sv" id="st-det">3.00</div></div>
+    <div class="stat"><div class="stat-label">v₁</div><div class="sv" style="font-size:11px" id="st-v1">[.71,.71]</div></div>
+    <div class="stat"><div class="stat-label">v₂</div><div class="sv" style="font-size:11px" id="st-v2">[−.71,.71]</div></div>
   </div>
 </div>
 
-<!-- Phase tabs -->
-<div class="phase-strip" id="phase-strip">
-  <button class="phase-btn active" onclick="jumpPhase(0)">1 · Eigenvectors</button>
-  <button class="phase-btn"        onclick="jumpPhase(1)">2 · Xv = λv</button>
-  <button class="phase-btn"        onclick="jumpPhase(2)">3 · Grid → P⁻¹</button>
-  <button class="phase-btn"        onclick="jumpPhase(3)">4 · Scale (D)</button>
-  <button class="phase-btn"        onclick="jumpPhase(4)">5 · Back (P)</button>
+<div class="phase-strip">
+  <button class="pb active" onclick="jumpTo(0)">1·Standard<br>basis</button>
+  <button class="pb"        onclick="jumpTo(1)">2·Apply<br>X</button>
+  <button class="pb"        onclick="jumpTo(2)">3·Apply<br>X⁻¹</button>
+  <button class="pb"        onclick="jumpTo(3)">4·Eigen-<br>vectors</button>
+  <button class="pb"        onclick="jumpTo(4)">5·Apply X<br>again</button>
+  <button class="pb"        onclick="jumpTo(5)">6·Reset<br>to I</button>
+  <button class="pb"        onclick="jumpTo(6)">7·P⁻¹<br>basis</button>
+  <button class="pb"        onclick="jumpTo(7)">8·D=X in<br>eigenbasis</button>
+  <button class="pb"        onclick="jumpTo(8)">9·P<br>back</button>
 </div>
 
-<div class="canvas-wrap">
-  <canvas id="c" height="480"></canvas>
-</div>
+<canvas id="c"></canvas>
 
-<div class="annotation" id="annotation">
-  <strong>Phase 1 · Eigenvectors:</strong> The dashed lines show the two eigenvector directions of X. Any vector along these lines is only <em>scaled</em> by X — never rotated.
-</div>
+<div class="annotation" id="ann"></div>
 
 <div class="step-controls">
-  <button id="btn-prev" class="step-btn" disabled>← Prev</button>
+  <button class="sbtn" id="btn-prev" disabled>← Prev</button>
   <div class="step-info">
-    <span id="step-label">Step 1 / 5</span>
-    <div class="step-dots" id="step-dots">
-      <div class="step-dot active"></div>
-      <div class="step-dot"></div>
-      <div class="step-dot"></div>
-      <div class="step-dot"></div>
-      <div class="step-dot"></div>
+    <span id="step-label">Step 1 / 7</span>
+    <div class="dots" id="dots">
+      <div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
     </div>
   </div>
-  <button id="btn-next" class="step-btn primary">Start ▶</button>
+  <button class="sbtn primary" id="btn-next">Start ▶</button>
 </div>
 
 <div class="btn-row">
-  <button id="btn-reset" class="ctrl">↺ Reset</button>
+  <button class="ctrl" id="btn-reset">↺ Reset</button>
   <div class="sep"></div>
-  <span class="preset-label">Presets:</span>
-  <button class="ctrl" onclick="setMatrix(2,1,1,2)">Symmetric</button>
-  <button class="ctrl" onclick="setMatrix(3,0,0,1)">Diagonal</button>
-  <button class="ctrl" onclick="setMatrix(2,1,0,3)">Upper Tri</button>
-  <button class="ctrl" onclick="setMatrix(1,2,2,1)">Neg λ</button>
+  <span class="plbl">Presets:</span>
+  <button class="ctrl" onclick="setMat(2,1,1,2)">Symmetric</button>
+  <button class="ctrl" onclick="setMat(3,0,0,1)">Diagonal</button>
+  <button class="ctrl" onclick="setMat(2,1,0,3)">Upper Tri</button>
+  <button class="ctrl" onclick="setMat(1,2,2,1)">Neg λ</button>
+  <button class="ctrl" onclick="setMat(1,1,0,1)">Defective</button>
+  <button class="ctrl" onclick="setMat(0,-1,1,0)">Rotation</button>
 </div>
 
 <div class="legend">
-  <div class="legend-item"><div class="legend-dot" style="background:var(--accent-o)"></div>v₁ · eigenvector (λ₁)</div>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--accent-p)"></div>v₂ · eigenvector (λ₂)</div>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--accent-b)"></div>Standard basis / reference</div>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--accent-g); border-style:dashed"></div>Eigenvector spans</div>
+  <div class="li"><div class="ld" style="background:rgba(150,160,190,0.55)"></div>Standard basis I (grey ghost)</div>
+  <div class="li"><div class="ld" style="background:var(--o)"></div>v₁ · eigenvector (λ₁)</div>
+  <div class="li"><div class="ld" style="background:var(--p)"></div>v₂ · eigenvector (λ₂)</div>
+  <div class="li"><div class="ld" style="background:var(--b)"></div>Transformed / decomposition</div>
 </div>
 
 <script>
-/* ── state ── */
-const canvas = document.getElementById('c');
-const ctx    = canvas.getContext('2d');
-const DPR    = window.devicePixelRatio || 1;
-let raf = null, lastTs = null;
-let A = [[2,1],[1,2]];
+/* ═══════════════ state ═══════════════ */
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+const DPR=window.devicePixelRatio||1;
+let A=[[2,1],[1,2]];
+let step=0, loc=0, animating=false, done=false, raf=null, lastTs=null;
 
-/* Step model: 5 phases, each animates independently */
-const NUM_PHASES = 5;
-const PHASE_DUR = [1.6, 2.0, 1.6, 1.6, 1.6]; // seconds per phase
+const N=9;
+/* Each step has one or more sub-phases with durations (seconds).
+   stepPhases[s] = array of durations; loc runs 0→1 across ALL sub-phases in sequence. */
+const DURS=[ [1.6], [2.0], [1.8], [2.2], [2.6], [1.8], [2.4], [2.2], [2.4] ];
+/* flat total per step */
+const TOTAL=DURS.map(d=>d.reduce((a,b)=>a+b,0));
 
-let currentStep = 0;   // which phase we're on (0-indexed)
-let stepLoc     = 0;   // 0..1 progress within current step
-let animating   = false;
-let stepDone    = false; // current step has fully played
+/* within a step, given loc∈[0,1], return which sub-phase and local progress */
+function subphase(s,l){
+  const ds=DURS[s], tot=TOTAL[s];
+  let acc=0;
+  for(let i=0;i<ds.length;i++){
+    const frac=ds[i]/tot;
+    if(l<=acc+frac) return{sp:i, sl:clamp((l-acc)/frac,0,1)};
+    acc+=frac;
+  }
+  return{sp:ds.length-1,sl:1};
+}
 
-/* ── math helpers ── */
-function lerp(a,b,t){ return a+(b-a)*t; }
-function clamp(v,a,b){ return v<a?a:v>b?b:v; }
-function ease(t){ t=clamp(t,0,1); return t<0.5?2*t*t:-1+(4-2*t)*t; }
+/* ═══════════════ math ═══════════════ */
+function lerp(a,b,t){return a+(b-a)*t;}
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function ease(t){t=clamp(t,0,1);return t<0.5?2*t*t:(4-2*t)*t-1;}
+function eIn(t){t=clamp(t,0,1);return t*t;}
+function matMul(M,v){return[M[0][0]*v[0]+M[0][1]*v[1],M[1][0]*v[0]+M[1][1]*v[1]];}
 
-function getMatrix(){
-  return [
+function getA(){
+  return[
     [parseFloat(document.getElementById('a00').value)||0, parseFloat(document.getElementById('a01').value)||0],
     [parseFloat(document.getElementById('a10').value)||0, parseFloat(document.getElementById('a11').value)||0]
   ];
 }
-function setMatrix(a,b,c,d){
-  document.getElementById('a00').value=a; document.getElementById('a01').value=b;
-  document.getElementById('a10').value=c; document.getElementById('a11').value=d;
-  A=[[a,b],[c,d]];
-  resetAll(); updateStats();
+function setMat(a,b,c,d){
+  document.getElementById('a00').value=a;document.getElementById('a01').value=b;
+  document.getElementById('a10').value=c;document.getElementById('a11').value=d;
+  A=[[a,b],[c,d]];resetAll();updateStats();
 }
 
-function computeEigen(M){
-  const tr=M[0][0]+M[1][1];
-  const det=M[0][0]*M[1][1]-M[0][1]*M[1][0];
+function eigenOf(M){
+  const tr=M[0][0]+M[1][1], det=M[0][0]*M[1][1]-M[0][1]*M[1][0];
   const disc=tr*tr-4*det;
-
-  if(disc < -1e-9) return { type:'complex', l1:null, l2:null, v1:null, v2:null };
-
-  const sqD=Math.sqrt(Math.max(disc,0));
-  const l1=(tr+sqD)/2, l2=(tr-sqD)/2;
-
-  function eigvec(lam){
+  if(disc<-1e-9)return{type:'complex'};
+  const sq=Math.sqrt(Math.max(disc,0)), l1=(tr+sq)/2, l2=(tr-sq)/2;
+  function ev(lam){
     let vx,vy;
-    if(Math.abs(M[0][1])>1e-9){ vx=M[0][1]; vy=lam-M[0][0]; }
-    else if(Math.abs(M[1][0])>1e-9){ vx=lam-M[1][1]; vy=M[1][0]; }
-    else { vx=1; vy=0; }
+    if(Math.abs(M[0][1])>1e-9){vx=M[0][1];vy=lam-M[0][0];}
+    else if(Math.abs(M[1][0])>1e-9){vx=lam-M[1][1];vy=M[1][0];}
+    else{vx=1;vy=0;}
     const ln=Math.sqrt(vx*vx+vy*vy);
-    if(ln<1e-9) return null;
-    return [vx/ln, vy/ln];
+    return ln<1e-9?null:[vx/ln,vy/ln];
   }
-
-  const v1=eigvec(l1);
-  const v2=eigvec(l2);
-
-  const repeated = Math.abs(disc) < 1e-9;
-  if(repeated){
-    const parallel = !v1 || !v2 ||
-      Math.abs(v1[0]*v2[1] - v1[1]*v2[0]) < 1e-6;
-    if(parallel) return { type:'defective', l1, l2:l1, v1: v1||[1,0], v2:null };
+  const v1=ev(l1),v2=ev(l2);
+  if(Math.abs(disc)<1e-9){
+    const par=!v1||!v2||Math.abs(v1[0]*v2[1]-v1[1]*v2[0])<1e-6;
+    if(par)return{type:'defective',l1,l2:l1,v1:v1||[1,0],v2:null};
   }
-
-  return { type:'diagonalisable', l1, l2, v1, v2 };
+  return{type:'ok',l1,l2,v1,v2};
 }
 
-function matMul(M,v){ return [M[0][0]*v[0]+M[0][1]*v[1], M[1][0]*v[0]+M[1][1]*v[1]]; }
-
-/* ── UI state sync ── */
-function updateStepUI(){
-  const btnPrev = document.getElementById('btn-prev');
-  const btnNext = document.getElementById('btn-next');
-  const label   = document.getElementById('step-label');
-  const dots    = document.querySelectorAll('.step-dot');
-
-  label.textContent = 'Step '+(currentStep+1)+' / '+NUM_PHASES;
-
-  dots.forEach((d,i)=>{
-    d.classList.remove('active','done');
-    if(i < currentStep) d.classList.add('done');
-    if(i === currentStep) d.classList.add('active');
-  });
-
-  // Phase tab highlight
-  document.querySelectorAll('.phase-btn').forEach((b,i)=>{
-    b.classList.toggle('active', i===currentStep);
-  });
-
-  btnPrev.disabled = (currentStep === 0);
-
-  if(animating){
-    btnNext.textContent = '· · ·';
-    btnNext.disabled = true;
-    btnNext.classList.add('animating');
-    btnNext.classList.remove('primary');
-  } else if(!stepDone){
-    // step not yet started / reset to start
-    btnNext.textContent = currentStep===0 ? 'Start ▶' : 'Play ▶';
-    btnNext.disabled = false;
-    btnNext.classList.add('primary');
-    btnNext.classList.remove('animating');
-  } else if(currentStep < NUM_PHASES-1){
-    btnNext.textContent = 'Next →';
-    btnNext.disabled = false;
-    btnNext.classList.add('primary');
-    btnNext.classList.remove('animating');
-  } else {
-    // last step done
-    btnNext.textContent = 'Done ✓';
-    btnNext.disabled = true;
-    btnNext.classList.remove('primary','animating');
-  }
-}
-
-/* ── animation loop ── */
-function startStepAnimation(){
-  if(animating) return;
-  animating = true; stepDone = false; lastTs = null;
-  updateStepUI();
-  raf = requestAnimationFrame(animFrame);
-}
-
-function animFrame(ts){
-  if(!animating){ return; }
-  if(lastTs===null) lastTs=ts;
-  const dt=(ts-lastTs)/1000; lastTs=ts;
-  stepLoc = Math.min(stepLoc + dt/PHASE_DUR[currentStep], 1);
-  A=getMatrix(); updateStats(); draw();
-  if(stepLoc>=1){
-    animating=false; stepDone=true;
-    updateStepUI();
-    return;
-  }
-  raf=requestAnimationFrame(animFrame);
-}
-
-function stopAnim(){
-  animating=false;
-  if(raf){ cancelAnimationFrame(raf); raf=null; }
-}
-
-function goToStep(p){
-  stopAnim();
-  currentStep=clamp(p,0,NUM_PHASES-1);
-  stepLoc=0; stepDone=false;
-  A=getMatrix(); updateStats(); draw(); updateStepUI();
-}
-
-function resetAll(){
-  stopAnim();
-  currentStep=0; stepLoc=0; stepDone=false;
-  A=getMatrix(); draw(); updateStepUI();
-}
-
-/* Next button: if step not started → play it; if done → advance to next step and play */
-document.getElementById('btn-next').addEventListener('click',()=>{
-  if(animating) return;
-  const eig=computeEigen(getMatrix());
-  // Block advancing past step 0 if not diagonalisable
-  if(eig.type !== 'diagonalisable' && (stepDone || currentStep > 0)){
-    return; // stay on step 0, annotation explains why
-  }
-  if(!stepDone){
-    startStepAnimation();
-  } else if(currentStep < NUM_PHASES-1){
-    currentStep++;
-    stepLoc=0; stepDone=false;
-    updateStepUI();
-    startStepAnimation();
-  }
-});
-
-document.getElementById('btn-prev').addEventListener('click',()=>{
-  if(animating){ stopAnim(); }
-  if(currentStep > 0){
-    currentStep--;
-    stepLoc=1; stepDone=true; // show prev step fully completed
-  } else {
-    stepLoc=0; stepDone=false;
-  }
-  A=getMatrix(); updateStats(); draw(); updateStepUI();
-});
-
-document.getElementById('btn-reset').addEventListener('click',()=>{ resetAll(); });
-
-/* Phase tab clicks */
-function jumpPhase(p){
-  goToStep(p);
-}
-
-['a00','a01','a10','a11'].forEach(id=>{
-  document.getElementById(id).addEventListener('input',()=>{ A=getMatrix(); updateStats(); draw(); });
-});
-
-/* ── colors ── */
-function isDark(){ return window.matchMedia('(prefers-color-scheme: dark)').matches; }
-function getColors(){
-  const dk=isDark();
-  return {
-    gridMinor: dk?'rgba(255,255,255,0.04)' :'rgba(0,0,0,0.04)',
-    gridMajor: dk?'rgba(255,255,255,0.09)' :'rgba(0,0,0,0.09)',
-    gridT:     dk?'rgba(74,144,217,0.13)'  :'rgba(37,99,235,0.10)',
-    gridTMaj:  dk?'rgba(74,144,217,0.28)'  :'rgba(37,99,235,0.22)',
-    gridEig:   dk?'rgba(246,173,85,0.14)'  :'rgba(217,119,6,0.11)',
-    gridEigMaj:dk?'rgba(246,173,85,0.30)'  :'rgba(217,119,6,0.24)',
-    axis:      dk?'rgba(255,255,255,0.20)' :'rgba(0,0,0,0.20)',
-    origin:    dk?'rgba(255,255,255,0.4)'  :'rgba(0,0,0,0.4)',
-    lam1:      dk?'#F6AD55':'#D97706',
-    lam2:      dk?'#C084FC':'#9333EA',
-    basis:     dk?'#4A90D9':'#2563EB',
-    span1:     dk?'rgba(246,173,85,0.55)'  :'rgba(217,119,6,0.55)',
-    span2:     dk?'rgba(192,132,252,0.55)' :'rgba(147,51,234,0.55)',
-    label:     dk?'rgba(255,255,255,0.65)' :'rgba(0,0,0,0.65)',
-    det:       dk?'rgba(246,173,85,0.12)'  :'rgba(217,119,6,0.09)',
+/* ═══════════════ colors ═══════════════ */
+function dk(){return window.matchMedia('(prefers-color-scheme:dark)').matches;}
+function col(){
+  const d=dk();
+  return{
+    gMin:  d?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.04)',
+    gMaj:  d?'rgba(255,255,255,0.09)':'rgba(0,0,0,0.09)',
+    gTMin: d?'rgba(74,144,217,0.11)':'rgba(37,99,235,0.09)',
+    gTMaj: d?'rgba(74,144,217,0.25)':'rgba(37,99,235,0.20)',
+    gEMin: d?'rgba(246,173,85,0.11)':'rgba(217,119,6,0.09)',
+    gEMaj: d?'rgba(246,173,85,0.26)':'rgba(217,119,6,0.21)',
+    /* grey ghost — always represents I */
+    ghMin: d?'rgba(150,162,195,0.18)':'rgba(70,80,110,0.14)',
+    ghMaj: d?'rgba(150,162,195,0.35)':'rgba(70,80,110,0.28)',
+    ghVec: d?'rgba(160,172,205,0.65)':'rgba(70,80,115,0.60)',
+    axis:  d?'rgba(255,255,255,0.16)':'rgba(0,0,0,0.16)',
+    orig:  d?'rgba(255,255,255,0.4)':'rgba(0,0,0,0.4)',
+    lam1:  d?'#F6AD55':'#D97706',
+    lam2:  d?'#C084FC':'#9333EA',
+    blue:  d?'#4A90D9':'#2563EB',
+    sp1:   d?'rgba(246,173,85,0.65)':'rgba(217,119,6,0.65)',
+    sp2:   d?'rgba(192,132,252,0.65)':'rgba(147,51,234,0.65)',
+    lbl:   d?'rgba(255,255,255,0.65)':'rgba(0,0,0,0.65)',
   };
 }
 
-/* ── draw ── */
-function draw(){
-  A=getMatrix();
-  const eig=computeEigen(A);
+/* ═══════════════ draw primitives ═══════════════ */
+let OX,OY,SC,GR;
+function ts(v){return[OX+v[0]*SC,OY-v[1]*SC];}
 
-  const W=canvas.width/DPR, H=canvas.height/DPR;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.save(); ctx.scale(DPR,DPR);
-
-  const ox=W/2, oy=H/2;
-  const scale=Math.min(W,H)*0.155;
-  const C=getColors();
-  const GR=Math.ceil(Math.max(W,H)/scale)+2;
-
-  function toScreen(v){ return [ox+v[0]*scale, oy-v[1]*scale]; }
-
-  function drawGridStandard(alpha, colorMinor, colorMajor){
-    if(alpha<0.01) return;
-    ctx.globalAlpha=alpha;
-    for(let i=-GR;i<=GR;i++){
-      const maj=(i%5===0);
-      ctx.strokeStyle=maj?colorMajor:colorMinor;
-      ctx.lineWidth=maj?0.8:0.5; ctx.setLineDash([]);
-      let [x0,y0]=toScreen([i,-GR]), [x1,y1]=toScreen([i,GR]);
-      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-      [x0,y0]=toScreen([-GR,i]); [x1,y1]=toScreen([GR,i]);
-      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-    }
-    ctx.globalAlpha=1;
+function grid(alpha,bx,by,cm,cM){
+  if(alpha<0.01)return;
+  ctx.globalAlpha=alpha;
+  for(let i=-GR;i<=GR;i++){
+    const maj=i%5===0;
+    ctx.strokeStyle=maj?cM:cm;ctx.lineWidth=maj?.8:.5;ctx.setLineDash([]);
+    let[x0,y0]=ts([bx[0]*i-by[0]*GR,bx[1]*i-by[1]*GR]);
+    let[x1,y1]=ts([bx[0]*i+by[0]*GR,bx[1]*i+by[1]*GR]);
+    ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
+    [x0,y0]=ts([by[0]*i-bx[0]*GR,by[1]*i-bx[1]*GR]);
+    [x1,y1]=ts([by[0]*i+bx[0]*GR,by[1]*i+bx[1]*GR]);
+    ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
   }
+  ctx.globalAlpha=1;
+}
+function stdGrid(a,c){grid(a,[1,0],[0,1],c.gMin,c.gMaj);}
+function ghostGrid(a,c){grid(a,[1,0],[0,1],c.ghMin,c.ghMaj);}
 
-  /* Skewed grid where basis vectors are cbx, cby */
-  function drawGridSkewed(alpha, cbx, cby, colorMinor, colorMajor){
-    if(alpha<0.01) return;
-    ctx.globalAlpha=alpha;
-    for(let i=-GR;i<=GR;i++){
-      const maj=(i%5===0);
-      ctx.strokeStyle=maj?colorMajor:colorMinor;
-      ctx.lineWidth=maj?0.8:0.5; ctx.setLineDash([]);
-      let sv=[cbx[0]*i-cby[0]*GR, cbx[1]*i-cby[1]*GR];
-      let ev=[cbx[0]*i+cby[0]*GR, cbx[1]*i+cby[1]*GR];
-      let [x0,y0]=toScreen(sv), [x1,y1]=toScreen(ev);
-      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-      sv=[cby[0]*i-cbx[0]*GR, cby[1]*i-cbx[1]*GR];
-      ev=[cby[0]*i+cbx[0]*GR, cby[1]*i+cbx[1]*GR];
-      [x0,y0]=toScreen(sv); [x1,y1]=toScreen(ev);
-      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-    }
-    ctx.globalAlpha=1;
-  }
-
-  function drawArrow(from,to,color,width,alpha,dash){
-    const [x1,y1]=toScreen(from), [x2,y2]=toScreen(to);
-    const dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy);
-    if(len<2) return;
-    const ux=dx/len, uy=dy/len;
-    const hw=Math.max(width*3.5,6), hl=Math.max(width*5,10);
-    const tx=x2-ux*hl, ty=y2-uy*hl;
-    ctx.globalAlpha=alpha;
-    ctx.strokeStyle=color; ctx.lineWidth=width; ctx.lineCap='round';
-    ctx.setLineDash(dash||[]);
-    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(tx,ty); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle=color;
-    ctx.beginPath(); ctx.moveTo(x2,y2);
-    ctx.lineTo(tx-uy*hw,ty+ux*hw); ctx.lineTo(tx+uy*hw,ty-ux*hw);
-    ctx.closePath(); ctx.fill();
-    ctx.globalAlpha=1;
-  }
-
-  function drawEigSpan(dir, color, alpha){
-    if(alpha<0.01) return;
-    ctx.globalAlpha=alpha;
-    ctx.strokeStyle=color; ctx.lineWidth=1.2; ctx.setLineDash([6,5]);
-    const [sx0,sy0]=toScreen([-dir[0]*GR,-dir[1]*GR]);
-    const [sx1,sy1]=toScreen([ dir[0]*GR, dir[1]*GR]);
-    ctx.beginPath(); ctx.moveTo(sx0,sy0); ctx.lineTo(sx1,sy1); ctx.stroke();
-    ctx.setLineDash([]); ctx.globalAlpha=1;
-  }
-
-  function labelAt(vec, text, color, alpha, offsetX, offsetY){
-    if(alpha<0.01) return;
-    const [sx,sy]=toScreen(vec);
-    ctx.globalAlpha=alpha; ctx.fillStyle=color;
-    ctx.font='500 11px JetBrains Mono, monospace';
-    ctx.textAlign='left'; ctx.textBaseline='middle';
-    ctx.fillText(text, sx+(offsetX||12), sy+(offsetY||0));
-    ctx.globalAlpha=1;
-  }
-
-  function dot(sx,sy,color,r,alpha){
-    if(alpha<0.01) return;
-    ctx.globalAlpha=alpha; ctx.fillStyle=color;
-    ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2); ctx.fill();
-    ctx.globalAlpha=1;
-  }
-
-  /* ──────────────────────────────────────
-     Decode phase & local progress
-  ────────────────────────────────────── */
-  const phase = currentStep;
-  const loc   = stepLoc;
-  const e     = ease(loc);
-
-  /* update annotation */
-  updateAnnotation(phase, loc, eig);
-
-  /* ── non-diagonalisable fallback ── */
-  if(eig.type !== 'diagonalisable'){
-    drawGridStandard(1, C.gridMinor, C.gridMajor);
-    ctx.strokeStyle=C.axis; ctx.lineWidth=1; ctx.setLineDash([]);
-    let [ax0,ay0]=toScreen([-GR,0]), [ax1,ay1]=toScreen([GR,0]);
-    ctx.beginPath(); ctx.moveTo(ax0,ay0); ctx.lineTo(ax1,ay1); ctx.stroke();
-    [ax0,ay0]=toScreen([0,-GR]); [ax1,ay1]=toScreen([0,GR]);
-    ctx.beginPath(); ctx.moveTo(ax0,ay0); ctx.lineTo(ax1,ay1); ctx.stroke();
-
-    if(eig.type==='defective' && eig.v1){
-      // Draw the single eigenvector and its span
-      const spanA=ease(clamp(loc/0.4,0,1));
-      drawEigSpan(eig.v1, C.span1, spanA*0.8);
-      const vecA=ease(clamp((loc-0.3)/0.5,0,1));
-      drawArrow([0,0], eig.v1, C.lam1, 2.5, vecA);
-      labelAt(eig.v1, 'v₁ (λ='+eig.l1.toFixed(2)+', only 1)', C.lam1, vecA);
-
-      // Draw a generalised eigenvector hint fading in later
-      if(loc>0.6){
-        const ga=ease(clamp((loc-0.6)/0.35,0,1));
-        // generalised eigenvector: solve (M-lI)w = v1
-        const M=A, lam=eig.l1, v=eig.v1;
-        // (M-lI)w = v => find w by substitution
-        // Use least-squares: pick w s.t. it's not parallel to v1
-        let wx=0,wy=0;
-        const a=M[0][0]-lam, b=M[0][1], c=M[1][0], d=M[1][1]-lam;
-        // Try w = [0,t]: b*t=v[0] -> t=v[0]/b if b!=0
-        if(Math.abs(b)>1e-9){ wx=0; wy=v[0]/b; }
-        else if(Math.abs(a)>1e-9){ wx=v[0]/a; wy=0; }
-        else { wx=v[1]/c||1; wy=0; }
-        const wl=Math.sqrt(wx*wx+wy*wy);
-        if(wl>1e-9){ wx/=wl; wy/=wl; }
-        drawArrow([0,0],[wx,wy], C.lam2, 2.5, ga, [4,3]);
-        labelAt([wx,wy],'w (generalised)', C.lam2, ga);
-      }
-    }
-
-    const [osx2,osy2]=toScreen([0,0]);
-    dot(osx2,osy2,C.origin,3.5,1);
-    ctx.restore();
-    return;
-  }
-
-  /* ──────────────────────────────────────
-     PHASE 0: Show eigenvector spans + vectors materialise
-  ────────────────────────────────────── */
-  if(phase===0){
-    drawGridStandard(1, C.gridMinor, C.gridMajor);
-    // axes
-    ctx.strokeStyle=C.axis; ctx.lineWidth=1; ctx.setLineDash([]);
-    let [x0,y0]=toScreen([-GR,0]), [x1,y1]=toScreen([GR,0]);
-    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-    [x0,y0]=toScreen([0,-GR]); [x1,y1]=toScreen([0,GR]);
-    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-
-    if(eig){
-      // eigenvector spans fade in
-      const spanA=ease(clamp(loc/0.35,0,1));
-      drawEigSpan(eig.v1, C.span1, spanA*0.8);
-      drawEigSpan(eig.v2, C.span2, spanA*0.8);
-
-      // eigenvectors grow in
-      const vecA=ease(clamp((loc-0.3)/0.5,0,1));
-      drawArrow([0,0],eig.v1, C.lam1, 2.5, vecA);
-      drawArrow([0,0],eig.v2, C.lam2, 2.5, vecA);
-
-      // labels
-      labelAt(eig.v1,'v₁ (λ₁='+eig.l1.toFixed(1)+')', C.lam1, vecA);
-      labelAt(eig.v2,'v₂ (λ₂='+eig.l2.toFixed(1)+')', C.lam2, vecA);
-    }
-  }
-
-  /* ──────────────────────────────────────
-     PHASE 1: Xv = λv — show eigenvector, then transformed = scaled same direction
-  ────────────────────────────────────── */
-  else if(phase===1){
-    drawGridStandard(1, C.gridMinor, C.gridMajor);
-    ctx.strokeStyle=C.axis; ctx.lineWidth=1; ctx.setLineDash([]);
-    let [x0,y0]=toScreen([-GR,0]), [x1,y1]=toScreen([GR,0]);
-    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-    [x0,y0]=toScreen([0,-GR]); [x1,y1]=toScreen([0,GR]);
-    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-
-    if(eig){
-      // both spans always visible
-      drawEigSpan(eig.v1, C.span1, 0.5);
-      drawEigSpan(eig.v2, C.span2, 0.5);
-
-      // Show v1 first half, then animate Xv1 = λ1·v1 growing from v1
-      const half1=clamp(loc/0.45,0,1);
-      const half2=clamp((loc-0.5)/0.45,0,1);
-
-      // v1 — unit eigenvector
-      drawArrow([0,0],eig.v1, C.lam1, 2.5, 1.0);
-      labelAt(eig.v1,'v₁', C.lam1, 1.0);
-
-      if(loc>0.1){
-        // Xv1 = l1 * v1, animate scaling from 1 to l1
-        const scaledV1=[
-          eig.v1[0]*lerp(1, eig.l1, ease(half1)),
-          eig.v1[1]*lerp(1, eig.l1, ease(half1))
-        ];
-        drawArrow([0,0], scaledV1, C.lam1, 2.5, ease(clamp(loc/0.3,0,1)), [4,4]);
-
-        const scaleLabel='Xv₁ = '+eig.l1.toFixed(1)+'·v₁';
-        labelAt(scaledV1, scaleLabel, C.lam1, ease(half1), 12, -14);
-      }
-
-      if(loc>0.55){
-        // same for v2
-        drawArrow([0,0],eig.v2, C.lam2, 2.5, ease(half2));
-        labelAt(eig.v2,'v₂', C.lam2, ease(half2));
-
-        const scaledV2=[
-          eig.v2[0]*lerp(1, eig.l2, ease(clamp((loc-0.6)/0.35,0,1))),
-          eig.v2[1]*lerp(1, eig.l2, ease(clamp((loc-0.6)/0.35,0,1)))
-        ];
-        drawArrow([0,0], scaledV2, C.lam2, 2.5, ease(half2), [4,4]);
-        labelAt(scaledV2, 'Xv₂ = '+eig.l2.toFixed(1)+'·v₂', C.lam2, ease(half2), 12, -14);
-      }
-    }
-  }
-
-  /* ──────────────────────────────────────
-     PHASE 2: Transform grid via P⁻¹ (rotate into eigenbasis)
-  ────────────────────────────────────── */
-  else if(phase===2){
-    if(!eig){ drawGridStandard(1,C.gridMinor,C.gridMajor); }
-    else {
-      // P = [v1 | v2] as columns, P^-1 rotates into eigenbasis
-      // The grid transitions from standard to eigenvector-aligned
-      const ghost=1-e;
-      const shown=e;
-
-      drawGridStandard(ghost, C.gridMinor, C.gridMajor);
-
-      // Eigenbasis grid: basis vectors are v1, v2
-      drawGridSkewed(shown, eig.v1, eig.v2, C.gridEig, C.gridEigMaj);
-
-      // Axes
-      ctx.strokeStyle=C.axis; ctx.lineWidth=1; ctx.setLineDash([]); ctx.globalAlpha=ghost;
-      let [x0,y0]=toScreen([-GR,0]), [x1,y1]=toScreen([GR,0]);
-      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-      [x0,y0]=toScreen([0,-GR]); [x1,y1]=toScreen([0,GR]);
-      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-      ctx.globalAlpha=1;
-
-      // Always show eigenvector spans
-      drawEigSpan(eig.v1, C.span1, 0.6);
-      drawEigSpan(eig.v2, C.span2, 0.6);
-
-      // New basis arrows appearing
-      const cbx=[lerp(1,eig.v1[0],e), lerp(0,eig.v1[1],e)];
-      const cby=[lerp(0,eig.v2[0],e), lerp(1,eig.v2[1],e)];
-      drawArrow([0,0], cbx, C.lam1, 2.5, 1.0);
-      drawArrow([0,0], cby, C.lam2, 2.5, 1.0);
-      labelAt(cbx, loc<0.5?'e₁→v₁':'v₁', C.lam1, 1.0);
-      labelAt(cby, loc<0.5?'e₂→v₂':'v₂', C.lam2, 1.0);
-
-      // Label
-      if(loc>0.6){
-        const fa=ease(clamp((loc-0.6)/0.3,0,1));
-        const [sx,sy]=toScreen([0.05, -1.4]);
-        ctx.globalAlpha=fa*0.8; ctx.fillStyle=C.label;
-        ctx.font='400 10px JetBrains Mono, monospace';
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText('P⁻¹ · (eigenbasis)', sx, sy);
-        ctx.globalAlpha=1;
-      }
-    }
-  }
-
-  /* ──────────────────────────────────────
-     PHASE 3: Scale along eigenvector axes (D = diag(λ₁, λ₂))
-  ────────────────────────────────────── */
-  else if(phase===3){
-    if(!eig){ drawGridStandard(1,C.gridMinor,C.gridMajor); }
-    else {
-      // Grid is in eigenbasis; now scale each axis by its eigenvalue
-      const s1=lerp(1,Math.abs(eig.l1),e); // scale along v1
-      const s2=lerp(1,Math.abs(eig.l2),e); // scale along v2
-      const cbx=[eig.v1[0]*s1, eig.v1[1]*s1];
-      const cby=[eig.v2[0]*s2, eig.v2[1]*s2];
-
-      drawGridSkewed(1, cbx, cby, C.gridEig, C.gridEigMaj);
-
-      drawEigSpan(eig.v1, C.span1, 0.55);
-      drawEigSpan(eig.v2, C.span2, 0.55);
-
-      drawArrow([0,0], cbx, C.lam1, 2.5, 1.0);
-      drawArrow([0,0], cby, C.lam2, 2.5, 1.0);
-      labelAt(cbx, 'λ₁·v₁ (×'+eig.l1.toFixed(1)+')', C.lam1, 1.0);
-      labelAt(cby, 'λ₂·v₂ (×'+eig.l2.toFixed(1)+')', C.lam2, 1.0);
-
-      if(loc>0.5){
-        const fa=ease(clamp((loc-0.5)/0.4,0,1));
-        const det=eig.l1*eig.l2;
-        const [sx,sy]=toScreen([0, -1.4]);
-        ctx.globalAlpha=fa*0.8; ctx.fillStyle=C.label;
-        ctx.font='400 10px JetBrains Mono, monospace';
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText('D = diag('+eig.l1.toFixed(1)+', '+eig.l2.toFixed(1)+')  det='+det.toFixed(2), sx, sy);
-        ctx.globalAlpha=1;
-      }
-    }
-  }
-
-  /* ──────────────────────────────────────
-     PHASE 4: Rotate back via P — result is X applied to original grid
-  ────────────────────────────────────── */
-  else if(phase===4){
-    if(!eig){ drawGridStandard(1,C.gridMinor,C.gridMajor); }
-    else {
-      // Start: scaled eigenbasis grid; End: Ax standard-looking (transformed grid)
-      const s1=Math.abs(eig.l1), s2=Math.abs(eig.l2);
-
-      // The start basis vectors are eig.v1*l1, eig.v2*l2
-      // The end basis vectors are A·e1, A·e2
-      const startCbx=[eig.v1[0]*s1, eig.v1[1]*s1];
-      const startCby=[eig.v2[0]*s2, eig.v2[1]*s2];
-      const endCbx=matMul(A,[1,0]);
-      const endCby=matMul(A,[0,1]);
-
-      const cbx=[lerp(startCbx[0],endCbx[0],e), lerp(startCbx[1],endCbx[1],e)];
-      const cby=[lerp(startCby[0],endCby[0],e), lerp(startCby[1],endCby[1],e)];
-
-      // Ghost standard grid fading in
-      drawGridStandard(e*0.5, C.gridMinor, C.gridMajor);
-      drawGridSkewed(1, cbx, cby, C.gridT, C.gridTMaj);
-
-      // Eigenvector spans fade out
-      drawEigSpan(eig.v1, C.span1, 1-e);
-      drawEigSpan(eig.v2, C.span2, 1-e);
-
-      drawArrow([0,0], cbx, loc<0.5?C.lam1:C.basis, 2.5, 1.0);
-      drawArrow([0,0], cby, loc<0.5?C.lam2:C.basis, 2.5, 1.0);
-
-      const lbl1=loc<0.2?'λ₁·v₁':loc>0.8?'Xe₁':'→Xe₁';
-      const lbl2=loc<0.2?'λ₂·v₂':loc>0.8?'Xe₂':'→Xe₂';
-      labelAt(cbx, lbl1, loc<0.5?C.lam1:C.basis, 1.0);
-      labelAt(cby, lbl2, loc<0.5?C.lam2:C.basis, 1.0);
-
-      if(loc>0.7){
-        const fa=ease(clamp((loc-0.7)/0.25,0,1));
-        const [sx,sy]=toScreen([0,-1.4]);
-        ctx.globalAlpha=fa*0.8; ctx.fillStyle=C.label;
-        ctx.font='400 10px JetBrains Mono, monospace';
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText('X = P·D·P⁻¹  ✓', sx, sy);
-        ctx.globalAlpha=1;
-      }
-    }
-  }
-
-  /* origin dot — always on top */
-  const [osx,osy]=toScreen([0,0]);
-  dot(osx,osy,C.origin,3.5,1);
-
-  ctx.restore();
+function axes(alpha,c){
+  if(alpha<0.01)return;
+  ctx.globalAlpha=alpha;ctx.strokeStyle=c.axis;ctx.lineWidth=1;ctx.setLineDash([]);
+  let[x0,y0]=ts([-GR,0]),[x1,y1]=ts([GR,0]);
+  ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
+  [x0,y0]=ts([0,-GR]);[x1,y1]=ts([0,GR]);
+  ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
+  ctx.globalAlpha=1;
 }
 
-/* ── annotation text per phase ── */
-const ANNOTATIONS = [
-  (loc,eig)=>`<strong>Phase 1 · Eigenvectors:</strong> The dashed lines are the two eigenvector <em>spans</em> of X. Arrows show the normalised eigenvectors <span class="ev1">v₁</span> and <span class="ev2">v₂</span> — any vector along these directions is only <em>scaled</em> by X, never rotated.`,
-  (loc,eig)=>`<strong>Phase 2 · Xv = λv:</strong> The solid arrow is the eigenvector; the dashed arrow shows the result of applying X — it stays on the same line but stretches to length <span class="lam1">λ₁·v₁</span> or <span class="lam2">λ₂·v₂</span>. No rotation — only scaling.`,
-  (loc,eig)=>`<strong>Phase 3 · Change of basis (P⁻¹):</strong> We rotate the coordinate grid into the eigenbasis — the <span class="lam1">v₁</span>, <span class="lam2">v₂</span> directions become the new axes. In this frame X acts <em>diagonally</em>.`,
-  (loc,eig)=>`<strong>Phase 4 · Diagonal scaling (D):</strong> In the eigenbasis, X simply scales each axis by its eigenvalue — <span class="lam1">λ₁=${eig?eig.l1.toFixed(2):'?'}</span> along v₁ and <span class="lam2">λ₂=${eig?eig.l2.toFixed(2):'?'}</span> along v₂. This is D = diag(λ₁, λ₂).`,
-  (loc,eig)=>`<strong>Phase 5 · Rotate back (P):</strong> Applying P maps back to the original basis. The full composition P·D·P⁻¹ is exactly X — this is the <strong>eigendecomposition</strong>: X = PDP⁻¹.`,
+function arrow(from,to,color,w,alpha,dash){
+  if(alpha<0.01)return;
+  const[x1,y1]=ts(from),[x2,y2]=ts(to);
+  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
+  if(len<2)return;
+  const ux=dx/len,uy=dy/len,hw=Math.max(w*3.5,6),hl=Math.max(w*5,10);
+  const tx=x2-ux*hl,ty=y2-uy*hl;
+  ctx.globalAlpha=alpha;ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';
+  ctx.setLineDash(dash||[]);
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(tx,ty);ctx.stroke();
+  ctx.setLineDash([]);ctx.fillStyle=color;
+  ctx.beginPath();ctx.moveTo(x2,y2);
+  ctx.lineTo(tx-uy*hw,ty+ux*hw);ctx.lineTo(tx+uy*hw,ty-ux*hw);
+  ctx.closePath();ctx.fill();ctx.globalAlpha=1;
+}
+
+function eigSpan(dir,color,alpha){
+  if(alpha<0.01)return;
+  ctx.globalAlpha=alpha;ctx.strokeStyle=color;ctx.lineWidth=1.3;ctx.setLineDash([6,5]);
+  const[sx0,sy0]=ts([-dir[0]*GR,-dir[1]*GR]),[sx1,sy1]=ts([dir[0]*GR,dir[1]*GR]);
+  ctx.beginPath();ctx.moveTo(sx0,sy0);ctx.lineTo(sx1,sy1);ctx.stroke();
+  ctx.setLineDash([]);ctx.globalAlpha=1;
+}
+
+function lbl(vec,text,color,alpha,ox,oy){
+  if(alpha<0.01)return;
+  const[sx,sy]=ts(vec);
+  ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.font='500 11px JetBrains Mono,monospace';
+  ctx.textAlign='left';ctx.textBaseline='middle';
+  ctx.fillText(text,sx+(ox||12),sy+(oy||0));ctx.globalAlpha=1;
+}
+
+function centLbl(text,alpha,yOff){
+  if(alpha<0.01)return;
+  const[sx,sy]=ts([0,yOff!==undefined?yOff:-1.55]);
+  ctx.globalAlpha=alpha*.88;ctx.fillStyle=col().lbl;
+  ctx.font='400 10px JetBrains Mono,monospace';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(text,sx,sy);ctx.globalAlpha=1;
+}
+
+function dot(v,r,color,alpha){
+  if(alpha<0.01)return;
+  const[sx,sy]=ts(v);
+  ctx.globalAlpha=alpha;ctx.fillStyle=color;
+  ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+}
+
+/* ═══════════════ ghost basis (I) — always grey ═══════════════ */
+/* Draws the two grey standard basis arrows, optionally with grid */
+function drawGhost(vecAlpha, gridAlpha, c){
+  ghostGrid(gridAlpha,c);
+  arrow([0,0],[1,0],c.ghVec,1.8,vecAlpha);
+  arrow([0,0],[0,1],c.ghVec,1.8,vecAlpha);
+  lbl([1,0],'e₁',c.ghVec,vecAlpha*.7);
+  lbl([0,1],'e₂',c.ghVec,vecAlpha*.7);
+}
+
+/* ═══════════════ MAIN DRAW ═══════════════ */
+function draw(){
+  A=getA();
+  const eig=eigenOf(A);
+  const c=col();
+  const W=canvas.width/DPR,H=canvas.height/DPR;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.save();ctx.scale(DPR,DPR);
+  OX=W/2;OY=H/2;SC=Math.min(W,H)*.155;GR=Math.ceil(Math.max(W,H)/SC)+2;
+
+  updateAnn(step,loc,eig);
+
+  /* ── non-diagonalisable ── */
+  if(eig.type!=='ok'){
+    stdGrid(1,c);axes(1,c);
+    if(eig.type==='defective'&&eig.v1){
+      const fa=ease(clamp(loc/.5,0,1));
+      eigSpan(eig.v1,c.sp1,fa*.85);
+      arrow([0,0],eig.v1,c.lam1,2.5,fa);
+      lbl(eig.v1,'v₁  (λ='+eig.l1.toFixed(2)+', only 1 eigenvec)',c.lam1,fa);
+    }
+    dot([0,0],3.5,c.orig,1);ctx.restore();return;
+  }
+
+  const Ae1=matMul(A,[1,0]), Ae2=matMul(A,[0,1]);
+  const e=ease(loc);
+
+  /* ════════════ STEP 0: Standard basis ════════════ */
+  if(step===0){
+    stdGrid(1,c);axes(1,c);
+    drawGhost(ease(clamp(loc/.55,0,1)),0,c);
+    centLbl('I = standard basis',ease(clamp((loc-.6)/.35,0,1)));
+  }
+
+  /* ════════════ STEP 1: Apply X — blue grid transforms, pause at end ════════════ */
+  else if(step===1){
+    const cbx=[lerp(1,Ae1[0],ease(clamp(loc/.6,0,1))),lerp(0,Ae1[1],ease(clamp(loc/.6,0,1)))];
+    const cby=[lerp(0,Ae2[0],ease(clamp(loc/.6,0,1))),lerp(1,Ae2[1],ease(clamp(loc/.6,0,1)))];
+    drawGhost(.55,.28,c);
+    grid(1,cbx,cby,c.gTMin,c.gTMaj);
+    arrow([0,0],cbx,c.blue,2.5,1);arrow([0,0],cby,c.blue,2.5,1);
+    lbl(cbx,loc>.5?'Xe₁':'e₁→Xe₁',c.blue,1);
+    lbl(cby,loc>.5?'Xe₂':'e₂→Xe₂',c.blue,1);
+    /* pause label fades in once transform is done */
+    centLbl('Xe₁ and Xe₂: scaled and rotated away from e₁, e₂',ease(clamp((loc-.65)/.3,0,1)));
+  }
+
+  /* ════════════ STEP 2: Apply X⁻¹ — reset back to I ════════════ */
+  else if(step===2){
+    const cbx=[lerp(Ae1[0],1,e),lerp(Ae1[1],0,e)];
+    const cby=[lerp(Ae2[0],0,e),lerp(Ae2[1],1,e)];
+    drawGhost(.55,.28,c);
+    grid(1-e,cbx,cby,c.gTMin,c.gTMaj);
+    arrow([0,0],cbx,c.blue,2.5,1-e);
+    arrow([0,0],cby,c.blue,2.5,1-e);
+    centLbl('X⁻¹X = I — every vector returns to its original direction',ease(clamp(loc/.5,0,1)));
+  }
+
+  /* ════════════ STEP 3: Introduce eigenvectors ════════════ */
+  else if(step===3){
+    stdGrid(1,c);axes(1,c);
+    drawGhost(lerp(.55,.16,e),0,c);
+    const spA=ease(clamp((loc-.15)/.4,0,1));
+    eigSpan(eig.v1,c.sp1,spA*.9);eigSpan(eig.v2,c.sp2,spA*.9);
+    const vecA=ease(clamp((loc-.4)/.45,0,1));
+    arrow([0,0],eig.v1,c.lam1,2.5,vecA);arrow([0,0],eig.v2,c.lam2,2.5,vecA);
+    lbl(eig.v1,'v₁  (λ₁='+eig.l1.toFixed(2)+')',c.lam1,vecA);
+    lbl(eig.v2,'v₂  (λ₂='+eig.l2.toFixed(2)+')',c.lam2,vecA);
+    centLbl('Xvᵢ = λᵢvᵢ — these directions are only scaled by X, never rotated',ease(clamp((loc-.7)/.25,0,1)));
+  }
+
+  /* ════════════ STEP 4: Apply X again — grey grid transforms, eigenvecs scale in place ════════════ */
+  else if(step===4){
+    const cbx=[lerp(1,Ae1[0],e),lerp(0,Ae1[1],e)];
+    const cby=[lerp(0,Ae2[0],e),lerp(1,Ae2[1],e)];
+    grid(1,cbx,cby,c.ghMin,c.ghMaj);
+    arrow([0,0],cbx,c.ghVec,1.8,1);arrow([0,0],cby,c.ghVec,1.8,1);
+    lbl(cbx,loc>.5?'Xe₁':'e₁',c.ghVec,.7);lbl(cby,loc>.5?'Xe₂':'e₂',c.ghVec,.7);
+    eigSpan(eig.v1,c.sp1,.92);eigSpan(eig.v2,c.sp2,.92);
+    const sv1=[eig.v1[0]*lerp(1,eig.l1,e),eig.v1[1]*lerp(1,eig.l1,e)];
+    const sv2=[eig.v2[0]*lerp(1,eig.l2,e),eig.v2[1]*lerp(1,eig.l2,e)];
+    arrow([0,0],sv1,c.lam1,2.5,1);arrow([0,0],sv2,c.lam2,2.5,1);
+    lbl(sv1,loc>.3?'Xv₁='+eig.l1.toFixed(2)+'·v₁':'v₁',c.lam1,1);
+    lbl(sv2,loc>.3?'Xv₂='+eig.l2.toFixed(2)+'·v₂':'v₂',c.lam2,1);
+    centLbl('Eigenvector spans invariant — X scales but does not rotate them',ease(clamp((loc-.65)/.28,0,1)));
+  }
+
+  /* ════════════ STEP 5: Reset grey grid back to I ════════════ */
+  else if(step===5){
+    const cbx=[lerp(Ae1[0],1,e),lerp(Ae1[1],0,e)];
+    const cby=[lerp(Ae2[0],0,e),lerp(Ae2[1],1,e)];
+    grid(1,cbx,cby,c.ghMin,c.ghMaj);
+    arrow([0,0],cbx,c.ghVec,1.8,1);arrow([0,0],cby,c.ghVec,1.8,1);
+    eigSpan(eig.v1,c.sp1,.75);eigSpan(eig.v2,c.sp2,.75);
+    arrow([0,0],eig.v1,c.lam1,2.5,1);arrow([0,0],eig.v2,c.lam2,2.5,1);
+    lbl(eig.v1,'v₁',c.lam1,1);lbl(eig.v2,'v₂',c.lam2,1);
+    centLbl('X = P·D·P⁻¹ — decomposing X into three geometric steps',ease(clamp((loc-.55)/.35,0,1)));
+  }
+
+  /* ════════════ STEP 6: P⁻¹ — change of basis into eigenvectors ════════════ */
+  else if(step===6){
+    ghostGrid(lerp(.35,0,e),c);
+    grid(e,eig.v1,eig.v2,c.gEMin,c.gEMaj);
+    arrow([0,0],[1,0],c.ghVec,1.8,lerp(.55,0,e));
+    arrow([0,0],[0,1],c.ghVec,1.8,lerp(.55,0,e));
+    eigSpan(eig.v1,c.sp1,.85);eigSpan(eig.v2,c.sp2,.85);
+    const bx=[lerp(1,eig.v1[0],e),lerp(0,eig.v1[1],e)];
+    const by=[lerp(0,eig.v2[0],e),lerp(1,eig.v2[1],e)];
+    arrow([0,0],bx,c.lam1,2.5,1);arrow([0,0],by,c.lam2,2.5,1);
+    lbl(bx,loc<.5?'e₁ → v₁':'v₁',c.lam1,1);lbl(by,loc<.5?'e₂ → v₂':'v₂',c.lam2,1);
+    centLbl('P⁻¹ · v: any vector re-expressed as a combination of eigenvectors',ease(clamp((loc-.35)/.35,0,1)));
+  }
+
+  /* ════════════ STEP 7: D — apply X in the eigenbasis (diagonal action) ════════════ */
+  else if(step===7){
+    /* In the eigenbasis, X IS D — no rotation, independent axis scaling.
+       The eigenbasis grid scales along v1 by λ1 and along v2 by λ2. */
+    const s1=lerp(1,eig.l1,e), s2=lerp(1,eig.l2,e);
+    const cbx=[eig.v1[0]*s1,eig.v1[1]*s1], cby=[eig.v2[0]*s2,eig.v2[1]*s2];
+    grid(1,cbx,cby,c.gEMin,c.gEMaj);
+    eigSpan(eig.v1,c.sp1,.7);eigSpan(eig.v2,c.sp2,.7);
+    arrow([0,0],cbx,c.lam1,2.5,1);arrow([0,0],cby,c.lam2,2.5,1);
+    lbl(cbx,'λ₁·v₁  (×'+eig.l1.toFixed(2)+')',c.lam1,1);
+    lbl(cby,'λ₂·v₂  (×'+eig.l2.toFixed(2)+')',c.lam2,1);
+    const dLabel='In eigenbasis: X acts as D = diag('+eig.l1.toFixed(2)+', '+eig.l2.toFixed(2)+') — pure scaling, no rotation';
+    centLbl(dLabel,ease(clamp((loc-.45)/.38,0,1)));
+  }
+
+  /* ════════════ STEP 8: P — rotate back to standard coordinates ════════════ */
+  else if(step===8){
+    /* P maps the scaled eigenbasis back to standard coordinates.
+       λᵢvᵢ → Xeᵢ  (the columns of X).
+       P·D·P⁻¹·eᵢ = Xeᵢ — the result is still scaled. To recover eᵢ
+       you would need X⁻¹ = P·D⁻¹·P⁻¹. */
+    const startCbx=[eig.v1[0]*eig.l1,eig.v1[1]*eig.l1];
+    const startCby=[eig.v2[0]*eig.l2,eig.v2[1]*eig.l2];
+    const cbx=[lerp(startCbx[0],Ae1[0],e),lerp(startCbx[1],Ae1[1],e)];
+    const cby=[lerp(startCby[0],Ae2[0],e),lerp(startCby[1],Ae2[1],e)];
+    grid(1,cbx,cby,c.gTMin,c.gTMaj);
+    ghostGrid(e*.4,c);
+    eigSpan(eig.v1,c.sp1,(1-e)*.7);eigSpan(eig.v2,c.sp2,(1-e)*.7);
+    arrow([0,0],cbx,loc<.5?c.lam1:c.blue,2.5,1);
+    arrow([0,0],cby,loc<.5?c.lam2:c.blue,2.5,1);
+    drawGhost(e*.45,0,c);
+    lbl(cbx,loc>.55?'Xe₁ = P·D·P⁻¹·e₁':'λ₁v₁ →',loc>.55?c.blue:c.lam1,1);
+    lbl(cby,loc>.55?'Xe₂ = P·D·P⁻¹·e₂':'λ₂v₂ →',loc>.55?c.blue:c.lam2,1);
+    if(loc>.65){
+      const fa=ease(clamp((loc-.65)/.28,0,1));
+      centLbl('X = P·D·P⁻¹ ✓  Result is Xe — still scaled. X⁻¹ = P·D⁻¹·P⁻¹ would return to I.',fa);
+    }
+  }
+
+  dot([0,0],3.5,c.orig,1);ctx.restore();
+}
+
+/* ═══════════════ annotations ═══════════════ */
+const ANNS=[
+  /* 0 */
+  ()=>`<strong>Step 1 · Standard basis.</strong> The grey vectors are <strong>e₁ = [1,0]</strong> and <strong>e₂ = [0,1]</strong> — the columns of the identity I. Every vector in ℝ² is a unique linear combination of e₁ and e₂.`,
+  /* 1 */
+  ()=>`<strong>Step 2 · Multiplying by X.</strong> X maps e₁ → Xe₁ and e₂ → Xe₂ (the columns of X). For a generic vector, Xv rotates <em>and</em> scales — the output points in a different direction from the input. The question eigendecomposition answers: <em>are there any directions X leaves invariant?</em>`,
+  /* 2 */
+  ()=>`<strong>Step 3 · Multiplying by X⁻¹.</strong> X⁻¹X = I — every vector is returned to its original direction. X⁻¹ is the exact inverse transformation: it undoes every rotation and scaling that X applied.`,
+  /* 3 */
+  (l,eig)=>`<strong>Step 4 · Eigenvectors.</strong> Xvᵢ = λᵢvᵢ — the eigenvectors are the special directions that X <em>only scales</em>, never rotates. Their spans (the dashed lines) are invariant subspaces of X. For this matrix: <span class="o">λ₁ = ${eig.l1.toFixed(3)}</span>, <span class="p">λ₂ = ${eig.l2.toFixed(3)}</span>.`,
+  /* 4 */
+  (l,eig)=>`<strong>Step 5 · Xv = λv.</strong> The grey grid distorts under X — most directions rotate. But the eigenvector spans are pinned: X maps <span class="o">v₁ → λ₁v₁ = ${eig.l1.toFixed(2)}·v₁</span> and <span class="p">v₂ → λ₂v₂ = ${eig.l2.toFixed(2)}·v₂</span>. The arrows grow along their own lines — no rotation whatsoever.`,
+  /* 5 */
+  ()=>`<strong>Step 6 · X = P·D·P⁻¹.</strong> Eigendecomposition expresses X as three sequential operations: (1) re-express in the eigenbasis (P⁻¹), (2) apply X — which in the eigenbasis acts diagonally (D), (3) convert back to standard coordinates (P). The space returns to I as the starting point for this decomposition.`,
+  /* 6 */
+  ()=>`<strong>Step 7 · P⁻¹ — change of basis.</strong> P = [v₁ | v₂] has the eigenvectors as columns. Multiplying by P⁻¹ re-expresses every vector in terms of eigenvector components. In this eigenbasis coordinate frame, X has no off-diagonal entries — it cannot mix the two axes.`,
+  /* 7 */
+  (l,eig)=>`<strong>Step 8 · D — X in the eigenbasis.</strong> In eigenbasis coordinates, <em>multiplying by X is the same as multiplying by D</em> = diag(λ₁, λ₂). This is because the eigenvectors diagonalise X: D is not a separate matrix — it <em>is</em> X, seen from the right coordinate frame. It scales the <span class="o">v₁</span>-component by <span class="o">λ₁ = ${eig.l1.toFixed(3)}</span> and the <span class="p">v₂</span>-component by <span class="p">λ₂ = ${eig.l2.toFixed(3)}</span>, with zero mixing between axes.`,
+  /* 8 */
+  ()=>`<strong>Step 9 · P — back to standard coordinates.</strong> P maps from the eigenbasis back to standard coordinates. The full product P·D·P⁻¹·eᵢ = Xeᵢ — the result is the same as X applied directly. <strong>The vectors are still scaled</strong> (that is what X does). To recover eᵢ you would need to also apply X⁻¹ = P·D⁻¹·P⁻¹.`,
 ];
 
-function updateAnnotation(phase,loc,eig){
+function updateAnn(s,l,eig){
+  const el=document.getElementById('ann');
   if(eig.type==='complex'){
-    document.getElementById('annotation').innerHTML =
-      '<strong>Complex eigenvalues:</strong> The discriminant tr²−4det < 0, so the eigenvalues are a conjugate complex pair. This matrix represents a <em>rotation-scaling</em> — no real vector stays on its own line. P·D·P⁻¹ is not possible over ℝ.';
-    return;
+    el.innerHTML='<strong>Complex eigenvalues:</strong> tr²−4·det < 0. This matrix is a rotation-scaling with no real invariant direction — P·D·P⁻¹ over ℝ is impossible.';return;
   }
   if(eig.type==='defective'){
-    document.getElementById('annotation').innerHTML =
-      '<strong>Defective matrix — not diagonalisable:</strong> λ = <span class="lam1">'+eig.l1.toFixed(2)+'</span> is a repeated eigenvalue (algebraic multiplicity 2) but there is only <em>one</em> independent eigenvector (geometric multiplicity 1). P cannot be formed with 2 independent columns, so P·D·P⁻¹ does not exist. The Jordan form J = [[λ,1],[0,λ]] is the best you can do. The dashed arrow shows the <span class="lam2">generalised eigenvector</span> w, where (X−λI)w = v₁.';
-    return;
+    el.innerHTML='<strong>Defective matrix:</strong> λ=<span class="o">'+eig.l1.toFixed(2)+'</span> has algebraic multiplicity 2 but geometric multiplicity 1 — only one independent eigenvector. P cannot be full-rank, so P·D·P⁻¹ does not exist. Use Jordan decomposition instead.';return;
   }
-  document.getElementById('annotation').innerHTML = ANNOTATIONS[phase](loc,eig);
+  const fn=ANNS[s];
+  el.innerHTML=fn(l,eig||{});
 }
 
-/* ── stats ── */
+/* ═══════════════ stats ═══════════════ */
 function updateStats(){
-  A=getMatrix();
-  const eig=computeEigen(A);
-  const tr=A[0][0]+A[1][1];
-  const det=A[0][0]*A[1][1]-A[0][1]*A[1][0];
-
+  A=getA();const eig=eigenOf(A);
+  const tr=A[0][0]+A[1][1],det=A[0][0]*A[1][1]-A[0][1]*A[1][0];
   document.getElementById('st-tr').textContent=tr.toFixed(2);
   document.getElementById('st-det').textContent=det.toFixed(2);
-
-  const l1El=document.getElementById('st-lam1');
-  const l2El=document.getElementById('st-lam2');
-  const v1El=document.getElementById('st-v1');
-  const v2El=document.getElementById('st-v2');
-
+  const l1e=document.getElementById('st-l1'),l2e=document.getElementById('st-l2');
+  const v1e=document.getElementById('st-v1'),v2e=document.getElementById('st-v2');
   if(eig.type==='complex'){
-    l1El.textContent='cmplx'; l1El.className='stat-value complex';
-    l2El.textContent='cmplx'; l2El.className='stat-value complex';
-    v1El.textContent='—'; v2El.textContent='—';
-  } else if(eig.type==='defective'){
-    l1El.textContent=eig.l1.toFixed(2); l1El.className='stat-value lam1';
-    l2El.textContent=eig.l2.toFixed(2)+' (×2)'; l2El.className='stat-value lam2';
-    v1El.textContent=eig.v1?'['+eig.v1[0].toFixed(2)+', '+eig.v1[1].toFixed(2)+']':'—';
-    v2El.textContent='— (defective)';
-  } else {
-    l1El.textContent=eig.l1.toFixed(2); l1El.className='stat-value lam1';
-    l2El.textContent=eig.l2.toFixed(2); l2El.className='stat-value lam2';
-    v1El.textContent=eig.v1?'['+eig.v1[0].toFixed(2)+', '+eig.v1[1].toFixed(2)+']':'—';
-    v2El.textContent=eig.v2?'['+eig.v2[0].toFixed(2)+', '+eig.v2[1].toFixed(2)+']':'—';
+    l1e.textContent='cmplx';l1e.className='sv r';l2e.textContent='cmplx';l2e.className='sv r';
+    v1e.textContent='—';v2e.textContent='—';
+  }else if(eig.type==='defective'){
+    l1e.textContent=eig.l1.toFixed(2);l1e.className='sv o';
+    l2e.textContent=eig.l2.toFixed(2)+' ×2';l2e.className='sv p';
+    v1e.textContent=eig.v1?'['+eig.v1[0].toFixed(2)+','+eig.v1[1].toFixed(2)+']':'—';
+    v2e.textContent='— defective';
+  }else{
+    l1e.textContent=eig.l1.toFixed(2);l1e.className='sv o';
+    l2e.textContent=eig.l2.toFixed(2);l2e.className='sv p';
+    v1e.textContent=eig.v1?'['+eig.v1[0].toFixed(2)+','+eig.v1[1].toFixed(2)+']':'—';
+    v2e.textContent=eig.v2?'['+eig.v2[0].toFixed(2)+','+eig.v2[1].toFixed(2)+']':'—';
   }
 }
 
-/* ── resize ── */
+/* ═══════════════ UI ═══════════════ */
+function updateUI(){
+  const prev=document.getElementById('btn-prev'),next=document.getElementById('btn-next');
+  const lbl=document.getElementById('step-label');
+  lbl.textContent='Step '+(step+1)+' / '+N;
+  document.querySelectorAll('.dot').forEach((d,i)=>{
+    d.classList.remove('active','done');
+    if(i<step)d.classList.add('done');
+    if(i===step)d.classList.add('active');
+  });
+  document.querySelectorAll('.pb').forEach((b,i)=>b.classList.toggle('active',i===step));
+  prev.disabled=step===0;
+  const eig=eigenOf(getA());
+  const blocked=eig.type!=='ok'&&step>=1;
+  if(animating){
+    next.textContent='· · ·';next.disabled=true;
+    next.classList.add('anim');next.classList.remove('primary');
+  }else if(blocked){
+    next.textContent='N/A';next.disabled=true;
+    next.classList.remove('anim','primary');
+  }else if(!done){
+    next.textContent=step===0?'Start ▶':'Play ▶';
+    next.disabled=false;next.classList.add('primary');next.classList.remove('anim');
+  }else if(step<N-1){
+    next.textContent='Next →';
+    next.disabled=false;next.classList.add('primary');next.classList.remove('anim');
+  }else{
+    next.textContent='Done ✓';next.disabled=true;next.classList.remove('primary','anim');
+  }
+}
+
+function startAnim(){
+  if(animating)return;
+  animating=true;done=false;lastTs=null;updateUI();
+  raf=requestAnimationFrame(frame);
+}
+function frame(ts){
+  if(!animating)return;
+  if(lastTs===null)lastTs=ts;
+  const dt=(ts-lastTs)/1e3;lastTs=ts;
+  loc=Math.min(loc+dt/TOTAL[step],1);
+  A=getA();updateStats();draw();
+  if(loc>=1){animating=false;done=true;updateUI();return;}
+  raf=requestAnimationFrame(frame);
+}
+function stopAnim(){animating=false;if(raf){cancelAnimationFrame(raf);raf=null;}}
+
+function jumpTo(p){
+  stopAnim();step=clamp(p,0,N-1);loc=0;done=false;
+  A=getA();updateStats();draw();updateUI();
+}
+function resetAll(){stopAnim();step=0;loc=0;done=false;A=getA();draw();updateUI();}
+
+document.getElementById('btn-next').addEventListener('click',()=>{
+  if(animating)return;
+  if(!done){startAnim();}
+  else if(step<N-1){step++;loc=0;done=false;updateUI();startAnim();}
+});
+document.getElementById('btn-prev').addEventListener('click',()=>{
+  if(animating)stopAnim();
+  if(step>0){step--;loc=1;done=true;}else{loc=0;done=false;}
+  A=getA();updateStats();draw();updateUI();
+});
+document.getElementById('btn-reset').addEventListener('click',()=>resetAll());
+['a00','a01','a10','a11'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>{A=getA();updateStats();draw();updateUI();});
+});
+
 function resize(){
-  const w=canvas.parentElement.clientWidth;
-  const h=Math.min(480,Math.round(w*0.6));
-  canvas.width=w*DPR; canvas.height=h*DPR;
-  canvas.style.height=h+'px';
-  draw();
+  const w=canvas.parentElement.clientWidth,h=Math.min(480,Math.round(w*.6));
+  canvas.width=w*DPR;canvas.height=h*DPR;canvas.style.height=h+'px';draw();
 }
 window.addEventListener('resize',resize);
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>draw());
-resize(); updateStats(); updateStepUI(); draw();
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>draw());
+resize();updateStats();updateUI();draw();
 </script>
 </body>
 </html>
